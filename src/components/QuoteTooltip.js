@@ -21,6 +21,15 @@ import React, { useRef, useEffect, useState } from 'react';
 export default function QuoteTooltip({ visible, x, y, code, quote, source, color }) {
   const ref   = useRef(null);
   const [pos, setPos] = useState({ left: x + 18, top: y - 10 });
+  // Tracks whether position has been corrected this show-cycle to avoid a one-frame flash
+  const [ready, setReady] = useState(false);
+
+  // Reset ready flag whenever the tooltip transitions from hidden to visible
+  useEffect(() => {
+    if (!visible) {
+      setReady(false);
+    }
+  }, [visible]);
 
   // Adjust position to stay within viewport bounds
   useEffect(() => {
@@ -36,8 +45,15 @@ export default function QuoteTooltip({ visible, x, y, code, quote, source, color
     if (left + rect.width > vw - 16) left = x - rect.width - 18;
     // Keep inside bottom edge
     if (top + rect.height > window.innerHeight - 16) top = window.innerHeight - rect.height - 16;
+    // Clamp against left and top edges
+    if (left < 16) left = 16;
+    if (top < 16) top = 16;
 
-    setPos({ left, top });
+    setPos(prev => {
+      if (prev.left === left && prev.top === top) return prev;
+      return { left, top };
+    });
+    setReady(true);
   }, [visible, x, y]);
 
   if (!visible) return null;
@@ -45,7 +61,13 @@ export default function QuoteTooltip({ visible, x, y, code, quote, source, color
   return (
     <div
       ref={ref}
-      style={{ left: pos.left, top: pos.top, borderColor: color + '55' }}
+      role="tooltip"
+      style={{
+        left: pos.left,
+        top: pos.top,
+        borderColor: color + '55', /* '55' ≈ 33% opacity in hex */
+        opacity: ready ? 1 : 0,
+      }}
       className="
         absolute z-50 pointer-events-none
         bg-slate-800 border rounded-xl
