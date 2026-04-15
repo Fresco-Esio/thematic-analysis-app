@@ -259,5 +259,5 @@ export function generateTemplate() {
   ]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Coded Excerpts');
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }).buffer;
 }
