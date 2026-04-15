@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure minimum 16px font size globally */
+html { font-size: 16px; }
+body { font-size: 16px; }
