@@ -26,6 +26,13 @@ export default function ContextMenu({ visible, x, y, items, onClose }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [visible, onClose]);
 
+  // Auto-dismiss after 5 s of no interaction
+  useEffect(() => {
+    if (!visible) return;
+    const timer = setTimeout(onClose, 5000);
+    return () => clearTimeout(timer);
+  }, [visible, onClose]);
+
   if (!visible) return null;
 
   // Adjust so menu doesn't overflow viewport

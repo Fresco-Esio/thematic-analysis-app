@@ -27,6 +27,7 @@ export const DEFAULT_PHYSICS = {
   collisionRadius: 80,   // minimum distance between node centers
   linkStrength:    0.4,  // how strongly edges pull nodes together (0–1)
   velocityDecay:   0.4,  // how quickly nodes slow down (0–1)
+  gravity:         0.02, // strength of pull toward center (forceX/forceY)
 };
 
 const PHYSICS_STORAGE_KEY = 'thematic_analysis_physics_v1';
@@ -75,7 +76,8 @@ export function createSimulation(nodes, edges, onTick, params = DEFAULT_PHYSICS)
                         .distance(params.linkDistance)
                         .strength(params.linkStrength))
     .force('collide', d3.forceCollide(params.collisionRadius).strength(0.7))
-    .force('center',  d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2).strength(0.03))
+    .force('x',       d3.forceX(window.innerWidth  / 2).strength(params.gravity))
+    .force('y',       d3.forceY(window.innerHeight / 2).strength(params.gravity))
     .velocityDecay(params.velocityDecay)
     .alphaDecay(0.01)   // slow cooling so the graph stays lively
     .on('tick', () => onTick(simNodes, simEdges));
@@ -109,6 +111,8 @@ export function createSimulation(nodes, edges, onTick, params = DEFAULT_PHYSICS)
       sim.force('charge')?.strength(newParams.repulsion);
       sim.force('link')?.distance(newParams.linkDistance).strength(newParams.linkStrength);
       sim.force('collide')?.radius(newParams.collisionRadius);
+      sim.force('x')?.strength(newParams.gravity);
+      sim.force('y')?.strength(newParams.gravity);
       sim.velocityDecay(newParams.velocityDecay);
       sim.alpha(0.3).restart();
     },

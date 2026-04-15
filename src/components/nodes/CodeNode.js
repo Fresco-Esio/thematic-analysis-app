@@ -42,6 +42,9 @@ export default function CodeNode({
   onContextMenu,
   onMouseDown,
   onClick,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
 }) {
   const { label, color } = node;
   const size = CODE_NODE_SIZE;
@@ -71,6 +74,8 @@ export default function CodeNode({
         border: '2px solid rgba(255,255,255,0.25)',
         cursor: connectMode ? 'crosshair' : 'grab',
         userSelect: 'none',
+        touchAction: 'none',
+        pointerEvents: 'auto',
         zIndex: isSelected || isConnecting ? 20 : 10,
       }}
       whileHover={{ scale: 1.08 }}
@@ -80,6 +85,9 @@ export default function CodeNode({
       onContextMenu={onContextMenu}
       onMouseDown={onMouseDown}
       onClick={onClick}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
     >
       {/* Inner content */}
       <div style={{
@@ -88,15 +96,6 @@ export default function CodeNode({
         alignItems: 'center', justifyContent: 'center',
         padding: '12px', textAlign: 'center',
       }}>
-        {/* Color indicator dot */}
-        <div style={{
-          width: 10, height: 10,
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255,255,255,0.75)',
-          marginBottom: 6,
-          flexShrink: 0,
-        }} />
-
         {/* Code label */}
         <span style={{
           fontSize: 16,

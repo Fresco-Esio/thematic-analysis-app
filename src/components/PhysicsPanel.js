@@ -8,65 +8,138 @@
  *   open     {boolean}
  *   params   {Object}  — current physics params
  *   onChange {fn}      — called with updated params object
+ *   onClose  {fn}      — called to close the panel
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { savePhysicsParams } from '../utils/forceSimulation';
 
 const SLIDERS = [
-  { key: 'linkDistance',    label: 'Link Distance',     min: 60,   max: 400,  step: 10,  unit: 'px' },
-  { key: 'repulsion',       label: 'Repulsion',         min: -600, max: -50,  step: 10,  unit: ''   },
-  { key: 'collisionRadius', label: 'Collision Radius',  min: 30,   max: 180,  step: 5,   unit: 'px' },
-  { key: 'linkStrength',    label: 'Link Strength',     min: 0,    max: 100,  step: 5,   unit: '%', transform: v => v / 100 },
-  { key: 'velocityDecay',   label: 'Velocity Decay',    min: 0,    max: 100,  step: 5,   unit: '%', transform: v => v / 100 },
+  { key: 'linkDistance',    label: 'Link Distance',    min: 60,   max: 400,  step: 10, unit: 'px' },
+  { key: 'repulsion',       label: 'Repulsion',        min: -600, max: -50,  step: 10, unit: ''   },
+  { key: 'collisionRadius', label: 'Collision Radius', min: 30,   max: 180,  step: 5,  unit: 'px' },
+  { key: 'linkStrength',    label: 'Link Strength',    min: 0,    max: 100,  step: 5,  unit: '%', transform: v => v / 100 },
+  { key: 'velocityDecay',   label: 'Velocity Decay',   min: 0,    max: 100,  step: 5,  unit: '%', transform: v => v / 100 },
+  { key: 'gravity',         label: 'Center Pull',      min: 0,    max: 15,   step: 1,  unit: '%', transform: v => v / 100 },
 ];
 
-export default function PhysicsPanel({ open, params, onChange }) {
+const AUTO_CLOSE_MS = 10000; // auto-close after 10 s of no interaction
+
+export default function PhysicsPanel({ open, params, onChange, onClose }) {
+  const panelRef = useRef(null);
+  const timerRef = useRef(null);
+
+  const resetTimer = useCallback(() => {
+    clearTimeout(timerRef.current);
+    if (open && onClose) {
+      timerRef.current = setTimeout(onClose, AUTO_CLOSE_MS);
+    }
+  }, [open, onClose]);
+
+  // Start/stop auto-close timer when panel opens/closes
+  useEffect(() => {
+    if (open) {
+      resetTimer();
+    } else {
+      clearTimeout(timerRef.current);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [open, resetTimer]);
+
+  // Click-outside to close
+  useEffect(() => {
+    if (!open) return;
+    function handler(e) {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        onClose?.();
+      }
+    }
+    // slight delay so the toggle-button click that opens the panel
+    // doesn't immediately close it via the same event
+    const id = setTimeout(() => document.addEventListener('mousedown', handler), 100);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener('mousedown', handler);
+    };
+  }, [open, onClose]);
+
   function handleChange(key, rawValue, transform) {
     const value   = transform ? transform(rawValue) : rawValue;
     const updated = { ...params, [key]: value };
     onChange(updated);
     savePhysicsParams(updated);
+    resetTimer();
   }
 
-  // For display: convert 0–1 range sliders to 0–100 for the input
   function displayValue(key, value, transform) {
     return transform ? Math.round(value * 100) : value;
   }
 
   return (
-    <div style={{
-      position: 'absolute', right: 0, top: 0, bottom: 0,
-      width: open ? 300 : 0,
-      overflow: 'hidden',
-      background: '#1e293b',
-      borderLeft: open ? '1px solid #334155' : 'none',
-      transition: 'width 0.25s ease',
-      zIndex: 80,
-      display: 'flex', flexDirection: 'column',
-      padding: open ? '20px' : 0,
-      gap: 20,
-    }}>
+    <div
+      ref={panelRef}
+      style={{
+        width: open ? 290 : 0,
+        minWidth: open ? 290 : 0,
+        overflow: 'hidden',
+        background: '#1e293b',
+        borderLeft: open ? '1px solid #334155' : 'none',
+        transition: 'width 0.25s ease, min-width 0.25s ease',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 10,
+      }}
+      onMouseMove={resetTimer}
+    >
       {open && (
-        <>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
-            Physics Controls
-          </h3>
+        <div style={{
+          padding: '16px 18px 18px',
+          display: 'flex', flexDirection: 'column', gap: 14,
+          height: '100%', overflowY: 'auto',
+          // prevent content from rendering while collapsing (avoids flash)
+          minWidth: 290,
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+            <h3 style={{
+              fontSize: 11, fontWeight: 700, color: '#64748b',
+              textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0,
+            }}>
+              Physics Controls
+            </h3>
+            <button
+              onClick={onClose}
+              title="Close panel (or click outside)"
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: '#475569', fontSize: 16, lineHeight: 1,
+                padding: '2px 6px', borderRadius: 4,
+                transition: 'color 0.15s, background 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#e2e8f0'; e.currentTarget.style.background = '#334155'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              ✕
+            </button>
+          </div>
 
           {SLIDERS.map(({ key, label, min, max, step, unit, transform }) => {
             const raw = displayValue(key, params[key], transform);
             return (
-              <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, color: '#94a3b8' }}>
+              <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#94a3b8' }}>
                   <span>{label}</span>
-                  <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{raw}{unit}</span>
+                  <span style={{ color: '#e2e8f0', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    {raw}{unit}
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={min} max={max} step={step}
                   value={raw}
                   onChange={e => handleChange(key, Number(e.target.value), transform)}
-                  style={{ width: '100%', accentColor: '#6366f1' }}
+                  style={{ width: '100%', accentColor: '#6366f1', cursor: 'pointer' }}
                 />
               </div>
             );
@@ -77,17 +150,21 @@ export default function PhysicsPanel({ open, params, onChange }) {
               const { DEFAULT_PHYSICS } = require('../utils/forceSimulation');
               onChange({ ...DEFAULT_PHYSICS });
               savePhysicsParams({ ...DEFAULT_PHYSICS });
+              resetTimer();
             }}
             style={{
-              marginTop: 'auto', fontSize: 16, fontWeight: 600,
-              color: '#94a3b8', background: 'transparent',
-              border: '1px solid #334155', borderRadius: 8,
-              padding: '8px 0', cursor: 'pointer',
+              marginTop: 'auto', paddingTop: 8, fontSize: 13, fontWeight: 600,
+              color: '#64748b', background: 'transparent',
+              border: '1px solid #1e3a5f', borderRadius: 8,
+              padding: '7px 0', cursor: 'pointer',
+              transition: 'color 0.15s, border-color 0.15s',
             }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#334155'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#1e3a5f'; }}
           >
             Reset Defaults
           </button>
-        </>
+        </div>
       )}
     </div>
   );

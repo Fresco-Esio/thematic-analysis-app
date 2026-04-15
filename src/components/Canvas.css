@@ -1,0 +1,45 @@
+/**
+ * Canvas.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Styling for the Canvas component.
+ */
+
+.canvas-container {
+  /* Layout */
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  flex: 1;
+
+  /* Prevent text selection during interactions */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.nodes-layer {
+  /* Ensure nodes can receive pointer events */
+  pointer-events: none;
+}
+
+.nodes-layer > * {
+  /* Allow drag interactions on children */
+  pointer-events: auto;
+}
+
+/* Smooth transitions for zoom/pan (applied via inline style) */
+#canvas-svg {
+  /* SVG elements don't have background by default */
+  background: transparent;
+}
+
+/* Edge lines smooth hover effect */
+#edges line {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Connection preview line */
+#connecting-edge line {
+  vector-effect: non-scaling-stroke;
+}

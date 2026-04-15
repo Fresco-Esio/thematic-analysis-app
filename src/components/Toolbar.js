@@ -32,7 +32,7 @@ function TbBtn({ children, onClick, variant = 'secondary', active = false }) {
   );
 }
 
-export default function Toolbar({ connectMode, physicsOpen, onImport, onAddTheme, onAddCode, onToggleConnect, onExportPng, onExportPdf, onTogglePhysics, onClear }) {
+export default function Toolbar({ connectMode, physicsOpen, onImport, onAddTheme, onAddCode, onToggleConnect, onFitView, onExportPng, onExportPdf, onTogglePhysics, onClear }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700 z-10 flex-shrink-0 flex-wrap">
       {/* App title */}
@@ -49,6 +49,7 @@ export default function Toolbar({ connectMode, physicsOpen, onImport, onAddTheme
       <TbBtn onClick={onToggleConnect} active={connectMode}>
         {connectMode ? '✕ Cancel Connect' : '↔ Connect'}
       </TbBtn>
+      <TbBtn onClick={onFitView}>⊞ Fit View</TbBtn>
 
       <div className="w-px h-6 bg-slate-600 mx-1" />
 
