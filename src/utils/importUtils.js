@@ -97,7 +97,7 @@ async function parseXlsx(file) {
     .map(row => {
       const obj = {};
       headers.forEach((key, i) => {
-        if (key) obj[key] = row[i] ? String(row[i]).trim() : null;
+        if (key) obj[key] = (row[i] != null && row[i] !== '') ? String(row[i]).trim() : null;
       });
       return obj;
     });
@@ -114,7 +114,7 @@ function normalizeRows(rawRows) {
     const obj = {};
     Object.entries(raw).forEach(([key, val]) => {
       const canonical = normalizeHeader(key);
-      if (canonical) obj[canonical] = val ? String(val).trim() : null;
+      if (canonical) obj[canonical] = (val != null && val !== '') ? String(val).trim() : null;
     });
     return obj;
   });
@@ -259,5 +259,6 @@ export function generateTemplate() {
   ]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Coded Excerpts');
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }).buffer;
+  const uint8 = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  return new Blob([uint8], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }

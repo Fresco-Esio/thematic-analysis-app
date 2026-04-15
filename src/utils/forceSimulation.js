@@ -35,7 +35,12 @@ const PHYSICS_STORAGE_KEY = 'thematic_analysis_physics_v1';
 export function loadPhysicsParams() {
   try {
     const saved = localStorage.getItem(PHYSICS_STORAGE_KEY);
-    if (saved) return { ...DEFAULT_PHYSICS, ...JSON.parse(saved) };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return { ...DEFAULT_PHYSICS, ...parsed };
+      }
+    }
   } catch (e) { /* ignore */ }
   return { ...DEFAULT_PHYSICS };
 }
@@ -61,6 +66,7 @@ export function createSimulation(nodes, edges, onTick, params = DEFAULT_PHYSICS)
   // We keep a reference so we can update them later
   let simNodes = nodes.map(n => ({ ...n }));
   let simEdges = edges.map(e => ({ source: e.source, target: e.target, id: e.id }));
+  let nodeById = new Map(simNodes.map(n => [n.id, n]));
 
   const sim = d3.forceSimulation(simNodes)
     .force('charge',  d3.forceManyBody().strength(params.repulsion))
@@ -91,6 +97,7 @@ export function createSimulation(nodes, edges, onTick, params = DEFAULT_PHYSICS)
       }));
 
       simEdges = newEdges.map(e => ({ source: e.source, target: e.target, id: e.id }));
+      nodeById = new Map(simNodes.map(n => [n.id, n]));
 
       sim.nodes(simNodes);
       sim.force('link').links(simEdges);
@@ -99,22 +106,22 @@ export function createSimulation(nodes, edges, onTick, params = DEFAULT_PHYSICS)
 
     /** Update physics parameters (from PhysicsPanel sliders) */
     updateParams(newParams) {
-      sim.force('charge').strength(newParams.repulsion);
-      sim.force('link').distance(newParams.linkDistance).strength(newParams.linkStrength);
-      sim.force('collide').radius(newParams.collisionRadius);
+      sim.force('charge')?.strength(newParams.repulsion);
+      sim.force('link')?.distance(newParams.linkDistance).strength(newParams.linkStrength);
+      sim.force('collide')?.radius(newParams.collisionRadius);
       sim.velocityDecay(newParams.velocityDecay);
       sim.alpha(0.3).restart();
     },
 
     /** Pin a node at fixed coordinates during drag */
     pinNode(id, x, y) {
-      const node = simNodes.find(n => n.id === id);
+      const node = nodeById.get(id);
       if (node) { node.fx = x; node.fy = y; }
     },
 
     /** Release a dragged node (let simulation take over) */
     releaseNode(id) {
-      const node = simNodes.find(n => n.id === id);
+      const node = nodeById.get(id);
       if (node) { node.fx = null; node.fy = null; }
     },
 

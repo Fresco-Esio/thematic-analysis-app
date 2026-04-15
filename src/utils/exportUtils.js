@@ -20,6 +20,7 @@ import jsPDF from 'jspdf';
  * @param {string} filename — default 'thematic-map'
  */
 export async function exportToPng(element, filename = 'thematic-map') {
+  if (!element) throw new Error('exportToPng: canvas element is null — ensure canvasRef is mounted');
   const canvas = await html2canvas(element, {
     backgroundColor: '#0f172a', // match app background
     scale: 2,                   // 2x for retina quality
@@ -30,7 +31,9 @@ export async function exportToPng(element, filename = 'thematic-map') {
   const link = document.createElement('a');
   link.download = `${filename}-${datestamp()}.png`;
   link.href = canvas.toDataURL('image/png');
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
 }
 
 /**
@@ -40,6 +43,7 @@ export async function exportToPng(element, filename = 'thematic-map') {
  * @param {string} filename — default 'thematic-map'
  */
 export async function exportToPdf(element, filename = 'thematic-map') {
+  if (!element) throw new Error('exportToPdf: canvas element is null — ensure canvasRef is mounted');
   const canvas = await html2canvas(element, {
     backgroundColor: '#0f172a',
     scale: 2,
