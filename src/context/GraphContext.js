@@ -134,11 +134,20 @@ function graphReducer(state, action) {
         const nextEdge = remainingEdges.find(e => e.source === codeNode.id);
         if (nextEdge) {
           const nextTheme = state.nodes.find(n => n.id === nextEdge.target);
-          updatedNodes = state.nodes.map(n =>
-            n.id === codeNode.id
-              ? { ...n, primaryThemeId: nextTheme.id, color: nextTheme.color }
-              : n
-          );
+          if (nextTheme) {
+            updatedNodes = state.nodes.map(n =>
+              n.id === codeNode.id
+                ? { ...n, primaryThemeId: nextTheme.id, color: nextTheme.color }
+                : n
+            );
+          } else {
+            // nextEdge exists but target theme is gone — revert to unassigned
+            updatedNodes = state.nodes.map(n =>
+              n.id === codeNode.id
+                ? { ...n, primaryThemeId: null, color: UNASSIGNED_COLOR }
+                : n
+            );
+          }
         } else {
           // No more connections — revert to unassigned
           updatedNodes = state.nodes.map(n =>
