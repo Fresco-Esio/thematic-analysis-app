@@ -149,6 +149,8 @@ export default function Canvas({
   onAlignReady,
   searchQuery = '',
   searchFilters = { themes: true, codes: true },
+  focusThemeId = null,
+  onExitFocus,
 }) {
   const graphState = useGraph();
   const dispatch = useGraphDispatch();
@@ -397,6 +399,61 @@ export default function Canvas({
     return () => clearTimeout(timer);
   }, [graphState.nodes.length]); // re-check when node count changes (first load)
 
+  // ── Focus View Logic ──────────────────────────────────────────────────────
+
+  const focusedNodeIds = useMemo(() => {
+    if (!focusThemeId) return new Set();
+    const connectedCodeIds = graphState.edges
+      .filter(e => e.target === focusThemeId)
+      .map(e => e.source);
+    return new Set([focusThemeId, ...connectedCodeIds]);
+  }, [focusThemeId, graphState.edges]);
+
+  // Escape key handler
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape' && focusThemeId) {
+        onExitFocus?.();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [focusThemeId, onExitFocus]);
+
+  // Zoom-to-cluster effect
+  useEffect(() => {
+    if (!focusThemeId || !zoomBehaviorRef.current || !svgRef.current) return;
+
+    const focusedNodes = graphState.nodes.filter(n => focusedNodeIds.has(n.id));
+    if (focusedNodes.length === 0) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    focusedNodes.forEach(node => {
+      const pos      = positions.current.get(node.id) ?? { x: node.x ?? 0, y: node.y ?? 0 };
+      const halfSize = getNodeRadius(node);
+      minX = Math.min(minX, pos.x - halfSize);
+      minY = Math.min(minY, pos.y - halfSize);
+      maxX = Math.max(maxX, pos.x + halfSize);
+      maxY = Math.max(maxY, pos.y + halfSize);
+    });
+
+    const PADDING = 80;
+    const svgEl = svgRef.current;
+    const W = svgEl.clientWidth  || 800;
+    const H = svgEl.clientHeight || 600;
+    const contentW = maxX - minX + 2 * PADDING;
+    const contentH = maxY - minY + 2 * PADDING;
+    const k = Math.min(W / contentW, H / contentH, MAX_ZOOM);
+    const tx = W / 2 - k * ((minX + maxX) / 2);
+    const ty = H / 2 - k * ((minY + maxY) / 2);
+
+    d3.select(svgEl)
+      .transition()
+      .duration(600)
+      .ease(d3.easeCubicInOut)
+      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+  }, [focusThemeId, focusedNodeIds]);
+
   // ── Search Logic ──────────────────────────────────────────────────────────
 
   const searchActive = searchQuery.trim().length > 0;
@@ -593,8 +650,8 @@ export default function Canvas({
               isSelected={isSelected}
               isConnecting={isConnecting}
               connectMode={connectMode}
-              focusThemeId={null}
-              focusedNodeIds={new Set()}
+              focusThemeId={focusThemeId}
+              focusedNodeIds={focusedNodeIds}
               searchActive={searchActive}
               isSearchMatch={matchedNodeIds.has(node.id)}
               onClick={handleClick}
@@ -608,6 +665,32 @@ export default function Canvas({
           );
         })}
       </div>
+
+      {/* Exit Focus pill */}
+      {focusThemeId && (
+        <button
+          onClick={onExitFocus}
+          aria-label="Exit focus view"
+          style={{
+            position:        'absolute',
+            bottom:          24,
+            left:            '50%',
+            transform:       'translateX(-50%)',
+            zIndex:          40,
+            backgroundColor: '#0f0d0a',
+            color:           'white',
+            border:          '2px solid white',
+            boxShadow:       '4px 4px 0 #dc2626',
+            padding:         '8px 20px',
+            fontWeight:      700,
+            fontSize:        16,
+            cursor:          'pointer',
+            borderRadius:    4,
+          }}
+        >
+          ✕ Exit Focus
+        </button>
+      )}
 
       {/* Quote Tooltip */}
       <QuoteTooltip

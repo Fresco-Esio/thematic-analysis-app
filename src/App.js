@@ -47,6 +47,9 @@ function AppInner() {
   const [codeEditId,     setCodeEditId]     = useState(null);
   const [themeEditId,    setThemeEditId]    = useState(null);
 
+  // ── Focus view ──────────────────────────────────────────────────────────────
+  const [focusThemeId, setFocusThemeId] = useState(null);
+
   // ── Context menu ────────────────────────────────────────────────────────────
   const [ctxMenu, setCtxMenu] = useState({ visible: false, x: 0, y: 0, items: [] });
 
@@ -149,6 +152,7 @@ function AppInner() {
     } else if (type === 'theme-edit' || type === 'theme') {
       items = [
         { label: '✏ Rename / Edit Theme', action: () => setThemeEditId(id) },
+        { label: '⊙ Focus View', action: () => setFocusThemeId(id) },
         { label: '✕ Delete Theme', action: () => {
             const connectedCount = edges.filter(e => e.target === id).length;
             const msg = connectedCount > 0
@@ -207,6 +211,8 @@ function AppInner() {
           onAlignReady={(fn) => { alignTriggerRef.current = fn; }}
           searchQuery={searchQuery}
           searchFilters={searchFilters}
+          focusThemeId={focusThemeId}
+          onExitFocus={() => setFocusThemeId(null)}
         />
         <PhysicsPanel
           open={physicsOpen}
