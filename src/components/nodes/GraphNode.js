@@ -92,13 +92,15 @@ export default function GraphNode({
   const borderColor = isTheme ? 'white' : 'rgba(255,255,255,0.25)';
 
   return (
-    <motion.button
+    <motion.div
       className={isTheme ? 'graph-node graph-node--theme' : 'graph-node graph-node--code'}
       initial="initial"
       animate={isConnecting ? 'connecting' : 'visible'}
       variants={variants}
       whileHover={{ scale: isTheme ? 1.06 : 1.08, transition: springs.hover }}
       whileTap={{ scale: 0.97 }}
+      role="button"
+      tabIndex={0}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onMouseEnter={onMouseEnter}
@@ -172,6 +174,6 @@ export default function GraphNode({
           ✓
         </span>
       )}
-    </motion.button>
+    </motion.div>
   );
 }
