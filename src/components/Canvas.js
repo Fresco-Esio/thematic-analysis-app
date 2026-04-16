@@ -559,8 +559,8 @@ export default function Canvas({
               isSelected={isSelected}
               isConnecting={isConnecting}
               connectMode={connectMode}
-              focusThemeId={null}        {/* TODO Task 8: wire from App.js focusThemeId state */}
-              focusedNodeIds={new Set()} {/* TODO Task 8: wire from App.js computed focusedNodeIds */}
+              focusThemeId={null}
+              focusedNodeIds={new Set()}
               onClick={handleClick}
               onContextMenu={handleContextMenu}
               onMouseEnter={handleMouseEnter}
