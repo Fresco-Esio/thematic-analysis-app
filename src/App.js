@@ -17,7 +17,7 @@
  *   - contextMenu:   position + items
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { GraphProvider, useGraphDispatch, useGraph, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
 import { loadPhysicsParams } from './utils/forceSimulation';
 import { exportToPng, exportToPdf } from './utils/exportUtils';
@@ -116,7 +116,7 @@ function AppInner() {
     // 3. Unassigned codes at canvas center
     const unassigned = codeNodes.filter(n => !n.primaryThemeId);
     unassigned.forEach((code, i) => {
-      const angle = (2 * Math.PI * i) / Math.max(unassigned.length, 1);
+      const angle = (2 * Math.PI * i) / Math.max(unassigned.length, 1) - Math.PI / 2;
       dispatch({ type: 'UPDATE_NODE', id: code.id, changes: {
         x: cx + Math.cos(angle) * 80,
         y: cy + Math.sin(angle) * 80,
