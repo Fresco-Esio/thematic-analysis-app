@@ -35,6 +35,8 @@ export default function GraphNode({
   connectMode = false,
   focusThemeId = null,
   focusedNodeIds = new Set(),
+  searchActive = false,
+  isSearchMatch = false,
   onMouseEnter = () => {},
   onMouseLeave = () => {},
   onContextMenu,
@@ -48,12 +50,21 @@ export default function GraphNode({
   const radius = diameter / 2;
   const color = node.color || (isTheme ? '#6366f1' : '#64748b');
 
-  // Opacity: dim if focus is active and this node is not in the focused cluster
-  const isFocused = !focusThemeId || focusedNodeIds.has(node.id);
-  const opacity = isFocused ? 1 : 0.2;
+  // Opacity: dim based on search state or focus state
+  let opacity = 1;
+  if (searchActive) {
+    opacity = isSearchMatch ? 1 : 0.25;
+  } else if (focusThemeId) {
+    const isFocused = focusedNodeIds.has(node.id);
+    opacity = isFocused ? 1 : 0.2;
+  }
 
   // Box shadow: hard offset (Neo-Brutalist) + optional glow for states
   const getBoxShadow = () => {
+    // Search match takes precedence
+    if (searchActive && isSearchMatch) {
+      return `4px 4px 0 #dc2626`;
+    }
     if (isConnecting) {
       return `0 0 0 4px #fff, 0 0 24px 8px ${color}`;
     }

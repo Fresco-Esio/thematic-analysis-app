@@ -146,6 +146,8 @@ export default function Canvas({
   physicsParams,
   onContextMenu,
   onFitReady,
+  searchQuery = '',
+  searchFilters = { themes: true, codes: true },
 }) {
   const graphState = useGraph();
   const dispatch = useGraphDispatch();
@@ -382,6 +384,25 @@ export default function Canvas({
     return () => clearTimeout(timer);
   }, [graphState.nodes.length]); // re-check when node count changes (first load)
 
+  // ── Search Logic ──────────────────────────────────────────────────────────
+
+  const searchActive = searchQuery.trim().length > 0;
+  const lowerQuery = searchQuery.toLowerCase().trim();
+
+  const matchedNodeIds = useMemo(() => {
+    if (!searchActive) return new Set();
+    return new Set(
+      graphState.nodes
+        .filter(n => {
+          const typeMatch =
+            (n.type === 'theme' && searchFilters.themes) ||
+            (n.type === 'code'  && searchFilters.codes);
+          return typeMatch && (n.label || '').toLowerCase().includes(lowerQuery);
+        })
+        .map(n => n.id)
+    );
+  }, [graphState.nodes, searchQuery, searchFilters, searchActive]);
+
   // ── Edge List (Memoized) ──────────────────────────────────────────────
 
   const edgeListMemo = useMemo(() => {
@@ -561,6 +582,8 @@ export default function Canvas({
               connectMode={connectMode}
               focusThemeId={null}
               focusedNodeIds={new Set()}
+              searchActive={searchActive}
+              isSearchMatch={matchedNodeIds.has(node.id)}
               onClick={handleClick}
               onContextMenu={handleContextMenu}
               onMouseEnter={handleMouseEnter}

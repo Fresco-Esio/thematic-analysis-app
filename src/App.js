@@ -49,6 +49,11 @@ function AppInner() {
   // ── Context menu ────────────────────────────────────────────────────────────
   const [ctxMenu, setCtxMenu] = useState({ visible: false, x: 0, y: 0, items: [] });
 
+  // ── Search state
+  const [searchOpen,    setSearchOpen]    = useState(false);
+  const [searchQuery,   setSearchQuery]   = useState('');
+  const [searchFilters, setSearchFilters] = useState({ themes: true, codes: true });
+
   // ── Toolbar actions ─────────────────────────────────────────────────────────
 
   function handleAddTheme() {
@@ -137,6 +142,12 @@ function AppInner() {
         onExportPdf={handleExportPdf}
         onTogglePhysics={() => setPhysicsOpen(o => !o)}
         onClear={handleClear}
+        searchOpen={searchOpen}
+        searchQuery={searchQuery}
+        searchFilters={searchFilters}
+        onSearchToggle={() => { setSearchOpen(o => !o); if (searchOpen) setSearchQuery(''); }}
+        onSearchChange={setSearchQuery}
+        onSearchFilterChange={(key) => setSearchFilters(f => ({ ...f, [key]: !f[key] }))}
       />
 
       <div className="flex flex-1 overflow-hidden" ref={canvasRef}>
@@ -145,6 +156,8 @@ function AppInner() {
           physicsParams={physicsParams}
           onContextMenu={handleContextMenu}
           onFitReady={(fn) => { fitViewFn.current = fn; }}
+          searchQuery={searchQuery}
+          searchFilters={searchFilters}
         />
         <PhysicsPanel
           open={physicsOpen}

@@ -16,7 +16,7 @@
  *   onClear         {fn}
  */
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 function TbBtn({ children, onClick, variant = 'secondary', active = false }) {
   const base    = 'px-4 py-2 rounded-lg font-semibold text-base transition-all cursor-pointer border-0';
@@ -32,7 +32,35 @@ function TbBtn({ children, onClick, variant = 'secondary', active = false }) {
   );
 }
 
-export default function Toolbar({ connectMode, physicsOpen, onImport, onAddTheme, onAddCode, onToggleConnect, onFitView, onExportPng, onExportPdf, onTogglePhysics, onClear }) {
+export default function Toolbar({
+  connectMode,
+  physicsOpen,
+  onImport,
+  onAddTheme,
+  onAddCode,
+  onToggleConnect,
+  onFitView,
+  onExportPng,
+  onExportPdf,
+  onTogglePhysics,
+  onClear,
+  searchOpen,
+  searchQuery,
+  searchFilters,
+  onSearchToggle,
+  onSearchChange,
+  onSearchFilterChange,
+}) {
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  function handleSearchKeyDown(e) {
+    if (e.key === 'Escape') onSearchToggle();
+  }
+
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700 z-10 flex-shrink-0 flex-wrap">
       {/* App title */}
@@ -56,7 +84,40 @@ export default function Toolbar({ connectMode, physicsOpen, onImport, onAddTheme
       <TbBtn onClick={onExportPng}>↓ PNG</TbBtn>
       <TbBtn onClick={onExportPdf}>↓ PDF</TbBtn>
 
-      <div className="flex-1" />
+      {/* Search — progressive disclosure */}
+      <div role="search" className="flex items-center gap-2 ml-auto">
+        {searchOpen && (
+          <>
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search nodes…"
+              aria-label="Search nodes"
+              className="text-base bg-slate-700 text-white border border-slate-500 rounded-lg px-3 py-2 w-52 focus:outline-none focus:border-indigo-400"
+            />
+            <TbBtn
+              onClick={() => onSearchFilterChange('themes')}
+              active={searchFilters.themes}
+              aria-pressed={searchFilters.themes}
+            >
+              Themes
+            </TbBtn>
+            <TbBtn
+              onClick={() => onSearchFilterChange('codes')}
+              active={searchFilters.codes}
+              aria-pressed={searchFilters.codes}
+            >
+              Codes
+            </TbBtn>
+          </>
+        )}
+        <TbBtn onClick={onSearchToggle} active={searchOpen} aria-pressed={searchOpen}>
+          {searchOpen ? '✕ Search' : '⌕ Search'}
+        </TbBtn>
+      </div>
 
       <TbBtn onClick={onTogglePhysics} active={physicsOpen}>⚙ Physics</TbBtn>
       <TbBtn variant="danger" onClick={onClear}>✕ Clear</TbBtn>
