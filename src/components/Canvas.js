@@ -452,7 +452,7 @@ export default function Canvas({
       .duration(600)
       .ease(d3.easeCubicInOut)
       .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
-  }, [focusThemeId, focusedNodeIds]);
+  }, [focusThemeId, focusedNodeIds, graphState.nodes]);
 
   // ── Search Logic ──────────────────────────────────────────────────────────
 
