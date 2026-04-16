@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ThematicMap — Aesthetic Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Fraunces:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Bricolage+Grotesque:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cabinet+Grotesk:wght@400;500;700;800&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600&family=Gilda+Display&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0a0a0f;
+    color: white;
+    min-height: 100vh;
+  }
+
+  /* ── Tab nav ──────────────────────────────────────────────────── */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #0a0a0f;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    gap: 2px;
+    padding: 12px 24px 0;
+    overflow-x: auto;
+  }
+  .nav-tab {
+    padding: 10px 18px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.4);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .nav-tab:hover { color: rgba(255,255,255,0.8); }
+  .nav-tab.active { color: white; border-bottom-color: white; }
+
+  /* ── Theme panels ─────────────────────────────────────────────── */
+  .theme-panel { display: none; flex-direction: column; min-height: calc(100vh - 53px); }
+  .theme-panel.active { display: flex; }
+
+  /* ── Shared component shells ──────────────────────────────────── */
+  .demo-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .demo-canvas {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    padding: 40px;
+    overflow: hidden;
+  }
+  .demo-statusbar {
+    display: flex;
+    gap: 24px;
+    padding: 8px 20px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  /* ── Node base ────────────────────────────────────────────────── */
+  .node {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    flex-shrink: 0;
+  }
+  .node:hover { transform: scale(1.08); }
+  .node-label {
+    padding: 12px;
+    line-height: 1.3;
+    font-weight: 600;
+    word-break: break-word;
+  }
+
+  /* ── Connector line ───────────────────────────────────────────── */
+  .connector-wrap {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  /* ── Search bar ───────────────────────────────────────────────── */
+  .search-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .search-pill input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    width: 140px;
+    color: inherit;
+  }
+
+  /* ── Tooltip ──────────────────────────────────────────────────── */
+  .tooltip-demo {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 260px;
+    border-radius: 12px;
+    padding: 16px;
+    pointer-events: none;
+  }
+
+  /* ── Label ────────────────────────────────────────────────────── */
+  .section-label {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.4;
+    white-space: nowrap;
+  }
+
+  /* ── Divider ──────────────────────────────────────────────────── */
+  .tb-divider { width: 1px; height: 24px; opacity: 0.2; flex-shrink: 0; }
+
+  /* ══════════════════════════════════════════════════════════════════
+     THEME A — Scientific Observatory
+  ══════════════════════════════════════════════════════════════════ */
+  #theme-a {
+    background: #060b18;
+    font-family: 'DM Sans', sans-serif;
+  }
+  #theme-a .demo-toolbar {
+    background: rgba(8, 16, 36, 0.95);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+    backdrop-filter: blur(12px);
+  }
+  #theme-a .app-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.02em;
+    margin-right: 8px;
+  }
+  #theme-a .app-title span { color: #f59e0b; }
+  #theme-a .tb-btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.06);
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s ease;
+    font-family: 'DM Sans', sans-serif;
+  }
+  #theme-a .tb-btn:hover { background: rgba(245, 158, 11, 0.14); color: white; border-color: rgba(245,158,11,0.4); }
+  #theme-a .tb-btn.primary { background: #f59e0b; border-color: #f59e0b; color: #060b18; font-weight: 700; }
+  #theme-a .tb-btn.primary:hover { background: #fbbf24; }
+  #theme-a .tb-divider { background: rgba(245,158,11,0.2); }
+  #theme-a .demo-canvas { background: radial-gradient(ellipse at 30% 40%, rgba(245,158,11,0.04) 0%, transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(99,102,241,0.05) 0%, transparent 50%), #060b18; }
+  #theme-a .node-theme {
+    width: 180px; height: 180px;
+    background: radial-gradient(circle at 38% 38%, rgba(245,158,11,0.9) 0%, rgba(180,100,0,0.8) 55%, rgba(120,60,0,0.95) 100%);
+    box-shadow: 0 0 0 2px rgba(245,158,11,0.3), 0 0 40px rgba(245,158,11,0.25), 0 0 80px rgba(245,158,11,0.1);
+    border: 2px solid rgba(245,158,11,0.5);
+    font-size: 17px;
+    color: #fff;
+  }
+  #theme-a .node-code {
+    width: 130px; height: 130px;
+    background: radial-gradient(circle at 40% 40%, rgba(99,102,241,0.85) 0%, rgba(60,60,180,0.8) 100%);
+    box-shadow: 0 0 0 1.5px rgba(99,102,241,0.3), 0 0 20px rgba(99,102,241,0.15);
+    border: 1.5px solid rgba(99,102,241,0.4);
+    font-size: 14px;
+    color: rgba(255,255,255,0.9);
+  }
+  #theme-a .tooltip-demo {
+    background: rgba(8,16,36,0.95);
+    border: 1px solid rgba(245,158,11,0.25);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    backdrop-filter: blur(16px);
+  }
+  #theme-a .tooltip-accent { width: 3px; border-radius: 2px; background: #f59e0b; align-self: stretch; flex-shrink: 0; }
+  #theme-a .search-pill { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: rgba(255,255,255,0.7); }
+  #theme-a .search-pill input::placeholder { color: rgba(255,255,255,0.35); }
+  #theme-a .demo-statusbar { background: rgba(8,16,36,0.9); border-top: 1px solid rgba(245,158,11,0.1); color: rgba(255,255,255,0.4); }
+  #theme-a .demo-statusbar b { color: rgba(255,255,255,0.85); }
+
+  /* ══════════════════════════════════════════════════════════════════
+     THEME B — Research Studio
+  ══════════════════════════════════════════════════════════════════ */
+  #theme-b {
+    background: #131008;
+    font-family: 'Outfit', sans-serif;
+  }
+  #theme-b .demo-toolbar {
+    background: rgba(22,18,10,0.97);
+    border-bottom: 1px solid rgba(249,115,22,0.12);
+  }
+  #theme-b .app-title {
+    font-family: 'Fraunces', serif;
+    font-size: 21px;
+    font-weight: 700;
+    color: #fef3c7;
+    letter-spacing: -0.01em;
+    margin-right: 8px;
+    font-style: italic;
+  }
+  #theme-b .app-title span { color: #f97316; font-style: normal; }
+  #theme-b .tb-btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid rgba(249,115,22,0.18);
+    background: rgba(249,115,22,0.05);
+    color: rgba(254,243,199,0.65);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s ease;
+    font-family: 'Outfit', sans-serif;
+  }
+  #theme-b .tb-btn:hover { background: rgba(249,115,22,0.12); color: #fef3c7; }
+  #theme-b .tb-btn.primary { background: #f97316; border-color: #f97316; color: #131008; font-weight: 700; }
+  #theme-b .tb-btn.primary:hover { background: #fb923c; }
+  #theme-b .tb-divider { background: rgba(249,115,22,0.18); }
+  #theme-b .demo-canvas { background: radial-gradient(ellipse at 25% 50%, rgba(249,115,22,0.04) 0%, transparent 55%), #131008; }
+  #theme-b .node-theme {
+    width: 180px; height: 180px;
+    background: radial-gradient(circle at 38% 35%, rgba(251,146,60,0.95) 0%, rgba(234,88,12,0.85) 60%, rgba(154,52,18,0.95) 100%);
+    box-shadow: 0 0 0 2px rgba(249,115,22,0.35), 0 0 50px rgba(249,115,22,0.2);
+    border: 2px solid rgba(251,146,60,0.4);
+    font-size: 17px;
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+  }
+  #theme-b .node-code {
+    width: 130px; height: 130px;
+    background: radial-gradient(circle at 40% 40%, rgba(20,184,166,0.85) 0%, rgba(13,148,136,0.8) 100%);
+    box-shadow: 0 0 0 1.5px rgba(20,184,166,0.3), 0 0 20px rgba(20,184,166,0.15);
+    border: 1.5px solid rgba(20,184,166,0.35);
+    font-size: 14px;
+    color: rgba(255,255,255,0.9);
+  }
+  #theme-b .tooltip-demo {
+    background: rgba(22,18,10,0.97);
+    border: 1px solid rgba(249,115,22,0.2);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  }
+  #theme-b .tooltip-accent { width: 3px; border-radius: 2px; background: #f97316; align-self: stretch; flex-shrink: 0; }
+  #theme-b .search-pill { background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.18); color: rgba(254,243,199,0.65); }
+  #theme-b .search-pill input::placeholder { color: rgba(254,243,199,0.3); }
+  #theme-b .demo-statusbar { background: rgba(22,18,10,0.95); border-top: 1px solid rgba(249,115,22,0.1); color: rgba(254,243,199,0.4); }
+  #theme-b .demo-statusbar b { color: rgba(254,243,199,0.85); }
+
+  /* ══════════════════════════════════════════════════════════════════
+     THEME C — Precision Data Tool
+  ══════════════════════════════════════════════════════════════════ */
+  #theme-c {
+    background: #080c0d;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  #theme-c .demo-toolbar {
+    background: rgba(10,15,16,0.98);
+    border-bottom: 1px solid rgba(34,211,238,0.15);
+  }
+  #theme-c .app-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.04em;
+    margin-right: 8px;
+    text-transform: uppercase;
+  }
+  #theme-c .app-title span { color: #22d3ee; }
+  #theme-c .tb-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(34,211,238,0.2);
+    background: rgba(34,211,238,0.04);
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s ease;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
+  }
+  #theme-c .tb-btn:hover { background: rgba(34,211,238,0.1); color: #22d3ee; border-color: rgba(34,211,238,0.4); }
+  #theme-c .tb-btn.primary { background: rgba(34,211,238,0.15); border-color: #22d3ee; color: #22d3ee; font-weight: 600; }
+  #theme-c .tb-divider { background: rgba(34,211,238,0.15); }
+  #theme-c .demo-canvas { background: radial-gradient(ellipse at 50% 50%, rgba(34,211,238,0.03) 0%, transparent 60%), #080c0d; }
+  #theme-c .node-theme {
+    width: 180px; height: 180px;
+    background: rgba(10,20,22,0.9);
+    box-shadow: 0 0 0 1.5px rgba(34,211,238,0.5), 0 0 30px rgba(34,211,238,0.15), inset 0 0 30px rgba(34,211,238,0.05);
+    border: 1.5px solid rgba(34,211,238,0.6);
+    font-size: 15px;
+    color: #22d3ee;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  #theme-c .node-code {
+    width: 130px; height: 130px;
+    background: rgba(10,20,22,0.8);
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.25), 0 0 15px rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.3);
+    font-size: 12px;
+    color: rgba(34,211,238,0.8);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  #theme-c .tooltip-demo {
+    background: rgba(10,15,16,0.98);
+    border: 1px solid rgba(34,211,238,0.25);
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.05), 0 20px 40px rgba(0,0,0,0.7);
+    border-radius: 4px;
+  }
+  #theme-c .tooltip-accent { width: 2px; border-radius: 0; background: #22d3ee; align-self: stretch; flex-shrink: 0; }
+  #theme-c .search-pill { background: rgba(34,211,238,0.05); border: 1px solid rgba(34,211,238,0.2); color: rgba(34,211,238,0.7); border-radius: 4px; }
+  #theme-c .search-pill input { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  #theme-c .search-pill input::placeholder { color: rgba(34,211,238,0.3); }
+  #theme-c .demo-statusbar { background: rgba(10,15,16,0.98); border-top: 1px solid rgba(34,211,238,0.1); color: rgba(34,211,238,0.4); font-size: 12px; }
+  #theme-c .demo-statusbar b { color: rgba(34,211,238,0.8); }
+
+  /* ══════════════════════════════════════════════════════════════════
+     THEME D — Bioluminescent / Deep Ocean
+  ══════════════════════════════════════════════════════════════════ */
+  #theme-d {
+    background: #030810;
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
+  #theme-d .demo-toolbar {
+    background: rgba(4,12,20,0.97);
+    border-bottom: 1px solid rgba(103,232,249,0.1);
+    backdrop-filter: blur(12px);
+  }
+  #theme-d .app-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #e0f7fa;
+    letter-spacing: -0.02em;
+    margin-right: 8px;
+  }
+  #theme-d .app-title span { color: #67e8f9; }
+  #theme-d .tb-btn {
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid rgba(103,232,249,0.15);
+    background: rgba(103,232,249,0.04);
+    color: rgba(224,247,250,0.6);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.25s ease;
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
+  #theme-d .tb-btn:hover { background: rgba(103,232,249,0.1); color: #67e8f9; border-color: rgba(103,232,249,0.35); }
+  #theme-d .tb-btn.primary { background: rgba(103,232,249,0.18); border-color: rgba(103,232,249,0.5); color: #67e8f9; font-weight: 600; }
+  #theme-d .tb-divider { background: rgba(103,232,249,0.12); }
+  #theme-d .demo-canvas {
+    background: radial-gradient(ellipse at 30% 40%, rgba(103,232,249,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 60%, rgba(167,139,250,0.05) 0%, transparent 45%),
+                radial-gradient(ellipse at 50% 20%, rgba(52,211,153,0.04) 0%, transparent 40%),
+                #030810;
+  }
+  #theme-d .node-theme {
+    width: 180px; height: 180px;
+    background: radial-gradient(circle at 38% 35%, rgba(103,232,249,0.25) 0%, rgba(14,116,144,0.6) 50%, rgba(7,89,133,0.8) 100%);
+    box-shadow: 0 0 0 1.5px rgba(103,232,249,0.4), 0 0 40px rgba(103,232,249,0.2), 0 0 80px rgba(103,232,249,0.08);
+    border: 1.5px solid rgba(103,232,249,0.5);
+    font-size: 17px;
+    color: #e0f7fa;
+  }
+  #theme-d .node-code {
+    width: 130px; height: 130px;
+    background: radial-gradient(circle at 40% 40%, rgba(167,139,250,0.25) 0%, rgba(109,40,217,0.5) 100%);
+    box-shadow: 0 0 0 1px rgba(167,139,250,0.35), 0 0 20px rgba(167,139,250,0.15);
+    border: 1px solid rgba(167,139,250,0.4);
+    font-size: 14px;
+    color: rgba(224,247,250,0.9);
+  }
+  #theme-d .tooltip-demo {
+    background: rgba(4,12,20,0.96);
+    border: 1px solid rgba(103,232,249,0.2);
+    box-shadow: 0 0 0 1px rgba(103,232,249,0.04), 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(103,232,249,0.06);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+  }
+  #theme-d .tooltip-accent { width: 3px; border-radius: 2px; background: #67e8f9; align-self: stretch; flex-shrink: 0; }
+  #theme-d .search-pill { background: rgba(103,232,249,0.06); border: 1px solid rgba(103,232,249,0.15); color: rgba(224,247,250,0.65); border-radius: 999px; }
+  #theme-d .search-pill input::placeholder { color: rgba(224,247,250,0.3); }
+  #theme-d .demo-statusbar { background: rgba(4,12,20,0.95); border-top: 1px solid rgba(103,232,249,0.08); color: rgba(224,247,250,0.35); }
+  #theme-d .demo-statusbar b { color: rgba(224,247,250,0.8); }
+
+  /* ══════════════════════════════════════════════════════════════════
+     THEME E — Neo-Brutalist Research
+  ══════════════════════════════════════════════════════════════════ */
+  #theme-e {
+    background: #f0ebe3;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    color: #0f0d0a;
+  }
+  #theme-e .demo-toolbar {
+    background: #0f0d0a;
+    border-bottom: 3px solid #dc2626;
+  }
+  #theme-e .app-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #f0ebe3;
+    letter-spacing: -0.03em;
+    margin-right: 8px;
+    text-transform: uppercase;
+  }
+  #theme-e .app-title span { color: #dc2626; }
+  #theme-e .tb-btn {
+    padding: 7px 14px;
+    border-radius: 0;
+    font-size: 13px;
+    font-weight: 700;
+    border: 2px solid rgba(240,235,227,0.25);
+    background: transparent;
+    color: rgba(240,235,227,0.75);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.1s ease;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  #theme-e .tb-btn:hover { background: rgba(240,235,227,0.1); color: #f0ebe3; border-color: rgba(240,235,227,0.6); }
+  #theme-e .tb-btn.primary { background: #dc2626; border-color: #dc2626; color: #f0ebe3; }
+  #theme-e .tb-btn.primary:hover { background: #ef4444; }
+  #theme-e .tb-divider { background: rgba(240,235,227,0.2); }
+  #theme-e .demo-canvas { background: #f0ebe3; }
+  #theme-e .node-theme {
+    width: 180px; height: 180px;
+    background: #0f0d0a;
+    box-shadow: 6px 6px 0 #dc2626;
+    border: 3px solid #0f0d0a;
+    font-size: 17px;
+    color: #f0ebe3;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+  #theme-e .node-code {
+    width: 130px; height: 130px;
+    background: #dc2626;
+    box-shadow: 4px 4px 0 #0f0d0a;
+    border: 2.5px solid #0f0d0a;
+    font-size: 13px;
+    color: #f0ebe3;
+    font-weight: 700;
+  }
+  #theme-e .tooltip-demo {
+    background: #0f0d0a;
+    border: 2px solid #dc2626;
+    box-shadow: 5px 5px 0 #dc2626;
+    border-radius: 0;
+    color: #f0ebe3;
+  }
+  #theme-e .tooltip-accent { width: 4px; border-radius: 0; background: #dc2626; align-self: stretch; flex-shrink: 0; }
+  #theme-e .search-pill { background: rgba(240,235,227,0.1); border: 2px solid rgba(240,235,227,0.3); color: rgba(240,235,227,0.75); border-radius: 0; }
+  #theme-e .search-pill input { color: #f0ebe3; }
+  #theme-e .search-pill input::placeholder { color: rgba(240,235,227,0.35); }
+  #theme-e .demo-statusbar { background: #0f0d0a; border-top: 2px solid #dc2626; color: rgba(240,235,227,0.45); }
+  #theme-e .demo-statusbar b { color: #f0ebe3; }
+  #theme-e .edge-line { stroke: #0f0d0a; }
+
+  /* ══════════════════════════════════════════════════════════════════
+     THEME F — Academic Archive
+  ══════════════════════════════════════════════════════════════════ */
+  #theme-f {
+    background: #14100a;
+    font-family: 'Libre Baskerville', serif;
+  }
+  #theme-f .demo-toolbar {
+    background: rgba(20,16,10,0.98);
+    border-bottom: 1px solid rgba(217,119,6,0.2);
+  }
+  #theme-f .app-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: #fef3c7;
+    letter-spacing: 0.01em;
+    margin-right: 8px;
+    font-style: italic;
+  }
+  #theme-f .app-title span { color: #d97706; font-style: normal; }
+  #theme-f .tb-btn {
+    padding: 7px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 400;
+    border: 1px solid rgba(217,119,6,0.2);
+    background: rgba(217,119,6,0.04);
+    color: rgba(254,243,199,0.55);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s ease;
+    font-family: 'Libre Baskerville', serif;
+    letter-spacing: 0.01em;
+  }
+  #theme-f .tb-btn:hover { background: rgba(217,119,6,0.1); color: #fef3c7; border-color: rgba(217,119,6,0.35); }
+  #theme-f .tb-btn.primary { background: #b45309; border-color: #b45309; color: #fef3c7; font-weight: 700; }
+  #theme-f .tb-btn.primary:hover { background: #d97706; }
+  #theme-f .tb-divider { background: rgba(217,119,6,0.2); }
+  #theme-f .demo-canvas {
+    background: radial-gradient(ellipse at 40% 50%, rgba(217,119,6,0.05) 0%, transparent 60%), #14100a;
+  }
+  #theme-f .node-theme {
+    width: 180px; height: 180px;
+    background: radial-gradient(circle at 38% 35%, rgba(217,119,6,0.85) 0%, rgba(146,64,14,0.85) 60%, rgba(92,34,5,0.95) 100%);
+    box-shadow: 0 0 0 2px rgba(217,119,6,0.3), 0 0 40px rgba(217,119,6,0.18), 0 4px 24px rgba(0,0,0,0.5);
+    border: 2px solid rgba(217,119,6,0.45);
+    font-size: 17px;
+    color: #fef3c7;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+  }
+  #theme-f .node-code {
+    width: 130px; height: 130px;
+    background: radial-gradient(circle at 40% 40%, rgba(78,70,220,0.8) 0%, rgba(49,46,129,0.85) 100%);
+    box-shadow: 0 0 0 1.5px rgba(99,102,241,0.3), 0 0 20px rgba(99,102,241,0.12);
+    border: 1.5px solid rgba(99,102,241,0.35);
+    font-size: 13px;
+    color: rgba(254,243,199,0.9);
+    font-family: 'Libre Baskerville', serif;
+  }
+  #theme-f .tooltip-demo {
+    background: rgba(20,16,10,0.97);
+    border: 1px solid rgba(217,119,6,0.22);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+    border-radius: 8px;
+  }
+  #theme-f .tooltip-accent { width: 3px; border-radius: 2px; background: #d97706; align-self: stretch; flex-shrink: 0; }
+  #theme-f .search-pill { background: rgba(217,119,6,0.06); border: 1px solid rgba(217,119,6,0.18); color: rgba(254,243,199,0.6); }
+  #theme-f .search-pill input { font-family: 'Libre Baskerville', serif; }
+  #theme-f .search-pill input::placeholder { color: rgba(254,243,199,0.28); }
+  #theme-f .demo-statusbar { background: rgba(20,16,10,0.98); border-top: 1px solid rgba(217,119,6,0.12); color: rgba(254,243,199,0.38); }
+  #theme-f .demo-statusbar b { color: rgba(254,243,199,0.8); }
+
+  /* ══════════════════════════════════════════════════════════════════
+     THEME G — Soft Sage / Organic
+  ══════════════════════════════════════════════════════════════════ */
+  #theme-g {
+    background: #0d120f;
+    font-family: 'Instrument Serif', serif;
+  }
+  #theme-g .demo-toolbar {
+    background: rgba(13,18,15,0.98);
+    border-bottom: 1px solid rgba(134,239,172,0.12);
+  }
+  #theme-g .app-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: #f0fdf4;
+    letter-spacing: -0.01em;
+    margin-right: 8px;
+  }
+  #theme-g .app-title span { color: #86efac; font-style: italic; }
+  #theme-g .tb-btn {
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 400;
+    border: 1px solid rgba(134,239,172,0.15);
+    background: rgba(134,239,172,0.04);
+    color: rgba(240,253,244,0.55);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.25s ease;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-weight: 500;
+  }
+  #theme-g .tb-btn:hover { background: rgba(134,239,172,0.1); color: #86efac; border-color: rgba(134,239,172,0.35); }
+  #theme-g .tb-btn.primary { background: rgba(134,239,172,0.2); border-color: rgba(134,239,172,0.5); color: #86efac; font-weight: 600; }
+  #theme-g .tb-divider { background: rgba(134,239,172,0.12); }
+  #theme-g .demo-canvas {
+    background: radial-gradient(ellipse at 35% 45%, rgba(134,239,172,0.05) 0%, transparent 55%),
+                radial-gradient(ellipse at 65% 55%, rgba(74,222,128,0.03) 0%, transparent 45%),
+                #0d120f;
+  }
+  #theme-g .node-theme {
+    width: 180px; height: 180px;
+    background: radial-gradient(circle at 38% 35%, rgba(134,239,172,0.3) 0%, rgba(22,101,52,0.7) 55%, rgba(14,66,35,0.9) 100%);
+    box-shadow: 0 0 0 2px rgba(134,239,172,0.3), 0 0 50px rgba(134,239,172,0.15), 0 0 90px rgba(134,239,172,0.06);
+    border: 2px solid rgba(134,239,172,0.4);
+    font-size: 17px;
+    color: #f0fdf4;
+    font-family: 'Instrument Serif', serif;
+  }
+  #theme-g .node-code {
+    width: 130px; height: 130px;
+    background: radial-gradient(circle at 40% 40%, rgba(251,191,36,0.3) 0%, rgba(180,83,9,0.6) 100%);
+    box-shadow: 0 0 0 1.5px rgba(251,191,36,0.3), 0 0 20px rgba(251,191,36,0.12);
+    border: 1.5px solid rgba(251,191,36,0.35);
+    font-size: 14px;
+    color: rgba(240,253,244,0.9);
+  }
+  #theme-g .tooltip-demo {
+    background: rgba(13,18,15,0.97);
+    border: 1px solid rgba(134,239,172,0.18);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(134,239,172,0.04);
+    border-radius: 20px;
+  }
+  #theme-g .tooltip-accent { width: 3px; border-radius: 2px; background: #86efac; align-self: stretch; flex-shrink: 0; }
+  #theme-g .search-pill { background: rgba(134,239,172,0.05); border: 1px solid rgba(134,239,172,0.14); color: rgba(240,253,244,0.6); }
+  #theme-g .search-pill input::placeholder { color: rgba(240,253,244,0.28); }
+  #theme-g .demo-statusbar { background: rgba(13,18,15,0.97); border-top: 1px solid rgba(134,239,172,0.08); color: rgba(240,253,244,0.35); }
+  #theme-g .demo-statusbar b { color: rgba(240,253,244,0.8); }
+
+  /* ── Shared SVG edge ──────────────────────────────────────────── */
+  .edge-line { stroke: rgba(255,255,255,0.15); stroke-width: 1.5; fill: none; }
+  #theme-c .edge-line { stroke: rgba(34,211,238,0.2); }
+  #theme-g .edge-line { stroke: rgba(134,239,172,0.18); }
+
+  /* ── Tooltip inner layout ─────────────────────────────────────── */
+  .tooltip-inner { display: flex; gap: 10px; }
+  .tooltip-body { flex: 1; }
+  .tooltip-code { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .tooltip-quote { font-size: 13px; opacity: 0.75; line-height: 1.5; font-style: italic; margin-bottom: 8px; }
+  .tooltip-source { font-size: 11px; opacity: 0.45; text-transform: uppercase; letter-spacing: 0.1em; }
+  #theme-c .tooltip-code, #theme-c .tooltip-quote, #theme-c .tooltip-source { font-family: 'JetBrains Mono', monospace; }
+  #theme-f .tooltip-code { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 16px; }
+  #theme-g .tooltip-code { font-family: 'Instrument Serif', serif; font-size: 16px; }
+
+  /* ── Search demo ──────────────────────────────────────────────── */
+  .search-demo { display: flex; align-items: center; gap: 6px; }
+  .search-filter-chip {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  /* ── Stars (Observatory only) ─────────────────────────────────── */
+  .stars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .star { position: absolute; border-radius: 50%; background: white; animation: twinkle var(--d, 3s) ease-in-out infinite alternate; }
+  @keyframes twinkle { from { opacity: 0.1; } to { opacity: 0.6; } }
+
+  /* ── Animated connecting dash ─────────────────────────────────── */
+  .animated-dash {
+    stroke-dasharray: 6 5;
+    animation: dash-flow 0.5s linear infinite;
+  }
+  @keyframes dash-flow { to { stroke-dashoffset: -22; } }
+
+  /* ── Glow pulse (planet nodes) ──────────────────────────────── */
+  .node-theme { animation: planet-breathe 4s ease-in-out infinite; }
+  @keyframes planet-breathe {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.08); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────────── -->
+<nav class="nav" role="tablist" aria-label="Aesthetic directions">
+  <button class="nav-tab active" onclick="showTheme('a')" role="tab" aria-selected="true">A · Observatory</button>
+  <button class="nav-tab" onclick="showTheme('b')" role="tab" aria-selected="false">B · Research Studio</button>
+  <button class="nav-tab" onclick="showTheme('c')" role="tab" aria-selected="false">C · Precision Data</button>
+  <button class="nav-tab" onclick="showTheme('d')" role="tab" aria-selected="false">D · Bioluminescent</button>
+  <button class="nav-tab" onclick="showTheme('e')" role="tab" aria-selected="false">E · Neo-Brutalist</button>
+  <button class="nav-tab" onclick="showTheme('f')" role="tab" aria-selected="false">F · Academic Archive</button>
+  <button class="nav-tab" onclick="showTheme('g')" role="tab" aria-selected="false">G · Organic/Sage</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THEME A — Scientific Observatory
+══════════════════════════════════════════════════════════════════════════ -->
+<section id="theme-a" class="theme-panel active" role="tabpanel">
+  <div class="demo-toolbar">
+    <span class="app-title">Thematic<span>Map</span></span>
+    <button class="tb-btn primary">↑ Import</button>
+    <button class="tb-btn">+ Theme</button>
+    <button class="tb-btn">+ Code</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn">↔ Connect</button>
+    <button class="tb-btn">⊞ Fit</button>
+    <div class="tb-divider"></div>
+    <!-- Search pill -->
+    <div class="search-pill search-demo">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input placeholder="Search nodes…" aria-label="Search nodes" />
+      <span class="search-filter-chip" style="background:rgba(245,158,11,0.15);color:#f59e0b;">Themes</span>
+      <span class="search-filter-chip" style="background:rgba(99,102,241,0.15);color:#818cf8;">Codes</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="tb-btn">↓ PNG</button>
+    <button class="tb-btn" style="color:rgba(248,113,113,0.8);border-color:rgba(248,113,113,0.2);">✕ Clear</button>
+  </div>
+
+  <div class="demo-canvas">
+    <!-- Stars -->
+    <div class="stars" aria-hidden="true">
+      <div class="star" style="width:2px;height:2px;top:15%;left:10%;--d:2.1s"></div>
+      <div class="star" style="width:1px;height:1px;top:25%;left:20%;--d:3.4s"></div>
+      <div class="star" style="width:2px;height:2px;top:60%;left:8%;--d:2.7s"></div>
+      <div class="star" style="width:1px;height:1px;top:75%;left:15%;--d:4.1s"></div>
+      <div class="star" style="width:2px;height:2px;top:35%;left:85%;--d:1.9s"></div>
+      <div class="star" style="width:1px;height:1px;top:55%;left:90%;--d:3.2s"></div>
+      <div class="star" style="width:1px;height:1px;top:80%;left:78%;--d:2.5s"></div>
+      <div class="star" style="width:2px;height:2px;top:10%;left:55%;--d:3.8s"></div>
+      <div class="star" style="width:1px;height:1px;top:88%;left:45%;--d:2.3s"></div>
+    </div>
+
+    <!-- SVG edges -->
+    <svg class="connector-wrap" aria-hidden="true">
+      <line class="edge-line" x1="42%" y1="50%" x2="30%" y2="42%" />
+      <line class="edge-line" x1="42%" y1="50%" x2="28%" y2="60%" />
+      <line class="edge-line animated-dash" x1="42%" y1="50%" x2="56%" y2="38%" stroke="rgba(245,158,11,0.4)" stroke-width="1.5" />
+    </svg>
+
+    <!-- Theme node (planet) -->
+    <div class="node node-theme" role="button" tabindex="0" aria-label="Climate Change — theme node" style="z-index:10;">
+      <div class="node-label" style="font-family:'Syne',sans-serif;font-weight:700;">Climate<br>Change</div>
+      <div aria-hidden="true" style="position:absolute;bottom:14px;right:14px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.3);"></div>
+    </div>
+
+    <!-- Code nodes (satellites) -->
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center;">
+      <div class="node node-code" role="button" tabindex="0" aria-label="Avoidance behavior — code node">
+        <div class="node-label" style="font-size:13px;">Avoidance<br>behavior</div>
+      </div>
+      <div class="node node-code" role="button" tabindex="0" aria-label="Denial of impact — code node">
+        <div class="node-label" style="font-size:13px;">Denial of<br>impact</div>
+      </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip-demo" role="tooltip">
+      <div class="tooltip-inner">
+        <div class="tooltip-accent"></div>
+        <div class="tooltip-body">
+          <div class="tooltip-code" style="color:#f59e0b;">Avoidance behavior</div>
+          <div class="tooltip-quote" style="color:rgba(255,255,255,0.75);">"I just try not to think about it too much, you know?"</div>
+          <div class="tooltip-source" style="color:rgba(255,255,255,0.4);">↳ Interview_04.docx</div>
+        </div>
+      </div>
+    </div>
+
+    <span class="section-label" style="color:rgba(245,158,11,0.4);">A · Scientific Observatory — Syne + DM Sans — Amber accent</span>
+  </div>
+
+  <div class="demo-statusbar">
+    <span><b>24</b> codes</span>
+    <span><b>5</b> themes</span>
+    <span><b style="color:rgba(255,255,255,0.4)">3</b> unassigned</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THEME B — Research Studio
+══════════════════════════════════════════════════════════════════════════ -->
+<section id="theme-b" class="theme-panel" role="tabpanel">
+  <div class="demo-toolbar">
+    <span class="app-title">Thematic<span>Map</span></span>
+    <button class="tb-btn primary">↑ Import</button>
+    <button class="tb-btn">+ Theme</button>
+    <button class="tb-btn">+ Code</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn">↔ Connect</button>
+    <button class="tb-btn">⊞ Fit</button>
+    <div class="tb-divider"></div>
+    <div class="search-pill search-demo">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input placeholder="Search nodes…" aria-label="Search nodes" />
+      <span class="search-filter-chip" style="background:rgba(249,115,22,0.15);color:#f97316;">Themes</span>
+      <span class="search-filter-chip" style="background:rgba(20,184,166,0.15);color:#14b8a6;">Codes</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="tb-btn">↓ PNG</button>
+    <button class="tb-btn" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.18);">✕ Clear</button>
+  </div>
+
+  <div class="demo-canvas">
+    <svg class="connector-wrap" aria-hidden="true">
+      <line class="edge-line" x1="42%" y1="50%" x2="30%" y2="42%" style="stroke:rgba(249,115,22,0.18)" />
+      <line class="edge-line" x1="42%" y1="50%" x2="28%" y2="60%" style="stroke:rgba(249,115,22,0.18)" />
+      <line class="edge-line animated-dash" x1="42%" y1="50%" x2="56%" y2="38%" stroke="rgba(249,115,22,0.35)" stroke-width="1.5" />
+    </svg>
+    <div class="node node-theme" role="button" tabindex="0" aria-label="Climate Change — theme node">
+      <div class="node-label" style="font-family:'Fraunces',serif;font-weight:700;font-style:italic;">Climate<br>Change</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center;">
+      <div class="node node-code" role="button" tabindex="0" aria-label="Avoidance behavior — code node">
+        <div class="node-label" style="font-size:13px;">Avoidance<br>behavior</div>
+      </div>
+      <div class="node node-code" role="button" tabindex="0" aria-label="Denial of impact — code node">
+        <div class="node-label" style="font-size:13px;">Denial of<br>impact</div>
+      </div>
+    </div>
+    <div class="tooltip-demo" role="tooltip">
+      <div class="tooltip-inner">
+        <div class="tooltip-accent"></div>
+        <div class="tooltip-body">
+          <div class="tooltip-code" style="color:#f97316;font-family:'Fraunces',serif;font-style:italic;font-size:16px;">Avoidance behavior</div>
+          <div class="tooltip-quote" style="color:rgba(254,243,199,0.75);">"I just try not to think about it too much, you know?"</div>
+          <div class="tooltip-source" style="color:rgba(254,243,199,0.38);">↳ Interview_04.docx</div>
+        </div>
+      </div>
+    </div>
+    <span class="section-label" style="color:rgba(249,115,22,0.4);">B · Research Studio — Fraunces serif title + Outfit UI — Rust/Orange accent</span>
+  </div>
+  <div class="demo-statusbar">
+    <span><b>24</b> codes</span><span><b>5</b> themes</span><span><b>3</b> unassigned</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THEME C — Precision Data
+══════════════════════════════════════════════════════════════════════════ -->
+<section id="theme-c" class="theme-panel" role="tabpanel">
+  <div class="demo-toolbar">
+    <span class="app-title">THEMATIC<span>MAP</span></span>
+    <button class="tb-btn primary">↑ IMPORT</button>
+    <button class="tb-btn">+ THEME</button>
+    <button class="tb-btn">+ CODE</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn">↔ CONNECT</button>
+    <button class="tb-btn">⊞ FIT</button>
+    <div class="tb-divider"></div>
+    <div class="search-pill search-demo">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input placeholder="search…" aria-label="Search nodes" />
+      <span class="search-filter-chip" style="background:rgba(34,211,238,0.12);color:#22d3ee;border-radius:3px;">THEME</span>
+      <span class="search-filter-chip" style="background:rgba(34,211,238,0.08);color:rgba(34,211,238,0.7);border-radius:3px;">CODE</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="tb-btn">↓ PNG</button>
+    <button class="tb-btn" style="color:rgba(248,113,113,0.7);border-color:rgba(248,113,113,0.18);">✕ CLR</button>
+  </div>
+  <div class="demo-canvas">
+    <svg class="connector-wrap" aria-hidden="true">
+      <line x1="42%" y1="50%" x2="30%" y2="42%" stroke="rgba(34,211,238,0.2)" stroke-width="1" fill="none"/>
+      <line x1="42%" y1="50%" x2="28%" y2="60%" stroke="rgba(34,211,238,0.2)" stroke-width="1" fill="none"/>
+      <line class="animated-dash" x1="42%" y1="50%" x2="56%" y2="38%" stroke="rgba(34,211,238,0.4)" stroke-width="1" fill="none"/>
+    </svg>
+    <div class="node node-theme" role="button" tabindex="0" aria-label="Climate Change — theme node">
+      <div class="node-label" style="font-size:14px;letter-spacing:0.05em;text-transform:uppercase;">Climate<br>Change</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center;">
+      <div class="node node-code" role="button" tabindex="0" aria-label="Avoidance behavior — code node">
+        <div class="node-label" style="font-size:11px;letter-spacing:0.03em;">avoidance_<br>behavior</div>
+      </div>
+      <div class="node node-code" role="button" tabindex="0" aria-label="Denial of impact — code node">
+        <div class="node-label" style="font-size:11px;letter-spacing:0.03em;">denial_of_<br>impact</div>
+      </div>
+    </div>
+    <div class="tooltip-demo" role="tooltip" style="color:#22d3ee;">
+      <div class="tooltip-inner">
+        <div class="tooltip-accent"></div>
+        <div class="tooltip-body">
+          <div class="tooltip-code" style="color:#22d3ee;font-size:12px;letter-spacing:0.05em;text-transform:uppercase;">avoidance_behavior</div>
+          <div class="tooltip-quote" style="color:rgba(34,211,238,0.6);font-size:12px;">"I just try not to think about it too much, you know?"</div>
+          <div class="tooltip-source" style="color:rgba(34,211,238,0.35);font-size:11px;">↳ Interview_04.docx</div>
+        </div>
+      </div>
+    </div>
+    <span class="section-label" style="color:rgba(34,211,238,0.35);">C · Precision Data — JetBrains Mono — Cyan accent</span>
+  </div>
+  <div class="demo-statusbar">
+    <span><b>24</b> codes</span><span><b>5</b> themes</span><span><b>3</b> unassigned</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THEME D — Bioluminescent
+══════════════════════════════════════════════════════════════════════════ -->
+<section id="theme-d" class="theme-panel" role="tabpanel">
+  <div class="demo-toolbar">
+    <span class="app-title">Thematic<span>Map</span></span>
+    <button class="tb-btn primary">↑ Import</button>
+    <button class="tb-btn">+ Theme</button>
+    <button class="tb-btn">+ Code</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn">↔ Connect</button>
+    <button class="tb-btn">⊞ Fit</button>
+    <div class="tb-divider"></div>
+    <div class="search-pill search-demo">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input placeholder="Search nodes…" aria-label="Search nodes" />
+      <span class="search-filter-chip" style="background:rgba(103,232,249,0.12);color:#67e8f9;">Themes</span>
+      <span class="search-filter-chip" style="background:rgba(167,139,250,0.12);color:#a78bfa;">Codes</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="tb-btn">↓ PNG</button>
+    <button class="tb-btn" style="color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.15);">✕ Clear</button>
+  </div>
+  <div class="demo-canvas">
+    <svg class="connector-wrap" aria-hidden="true">
+      <line x1="42%" y1="50%" x2="30%" y2="42%" stroke="rgba(103,232,249,0.15)" stroke-width="1.5" fill="none"/>
+      <line x1="42%" y1="50%" x2="28%" y2="60%" stroke="rgba(103,232,249,0.15)" stroke-width="1.5" fill="none"/>
+      <line class="animated-dash" x1="42%" y1="50%" x2="56%" y2="38%" stroke="rgba(103,232,249,0.4)" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="node node-theme" role="button" tabindex="0" aria-label="Climate Change — theme node">
+      <div class="node-label" style="font-family:'Bricolage Grotesque',sans-serif;font-weight:600;">Climate<br>Change</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center;">
+      <div class="node node-code" role="button" tabindex="0" aria-label="Avoidance behavior — code node">
+        <div class="node-label" style="font-size:13px;">Avoidance<br>behavior</div>
+      </div>
+      <div class="node node-code" role="button" tabindex="0" aria-label="Denial of impact — code node">
+        <div class="node-label" style="font-size:13px;">Denial of<br>impact</div>
+      </div>
+    </div>
+    <div class="tooltip-demo" role="tooltip">
+      <div class="tooltip-inner">
+        <div class="tooltip-accent"></div>
+        <div class="tooltip-body">
+          <div class="tooltip-code" style="color:#67e8f9;font-family:'Bricolage Grotesque',sans-serif;">Avoidance behavior</div>
+          <div class="tooltip-quote" style="color:rgba(224,247,250,0.7);">"I just try not to think about it too much, you know?"</div>
+          <div class="tooltip-source" style="color:rgba(224,247,250,0.35);">↳ Interview_04.docx</div>
+        </div>
+      </div>
+    </div>
+    <span class="section-label" style="color:rgba(103,232,249,0.35);">D · Bioluminescent — Bricolage Grotesque + Be Vietnam Pro — Aqua/Violet</span>
+  </div>
+  <div class="demo-statusbar">
+    <span><b>24</b> codes</span><span><b>5</b> themes</span><span><b>3</b> unassigned</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THEME E — Neo-Brutalist
+══════════════════════════════════════════════════════════════════════════ -->
+<section id="theme-e" class="theme-panel" role="tabpanel">
+  <div class="demo-toolbar">
+    <span class="app-title">THEMATIC<span>MAP</span></span>
+    <button class="tb-btn primary">↑ IMPORT</button>
+    <button class="tb-btn">+ THEME</button>
+    <button class="tb-btn">+ CODE</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn">↔ CONNECT</button>
+    <button class="tb-btn">⊞ FIT</button>
+    <div class="tb-divider"></div>
+    <div class="search-pill search-demo" style="background:rgba(240,235,227,0.08);border:2px solid rgba(240,235,227,0.25);border-radius:0;">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input placeholder="SEARCH…" aria-label="Search nodes" style="color:rgba(240,235,227,0.8);font-family:'Bricolage Grotesque',sans-serif;font-weight:600;letter-spacing:0.05em;font-size:12px;"/>
+      <span class="search-filter-chip" style="background:#dc2626;color:#f0ebe3;border-radius:0;font-size:10px;">THEMES</span>
+      <span class="search-filter-chip" style="background:rgba(240,235,227,0.15);color:rgba(240,235,227,0.7);border-radius:0;font-size:10px;">CODES</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="tb-btn">↓ PNG</button>
+    <button class="tb-btn" style="color:#ef4444;border-color:#ef4444;">✕ CLEAR</button>
+  </div>
+  <div class="demo-canvas">
+    <svg class="connector-wrap" aria-hidden="true">
+      <line x1="42%" y1="50%" x2="30%" y2="42%" stroke="rgba(15,13,10,0.4)" stroke-width="2" fill="none"/>
+      <line x1="42%" y1="50%" x2="28%" y2="60%" stroke="rgba(15,13,10,0.4)" stroke-width="2" fill="none"/>
+      <line class="animated-dash" x1="42%" y1="50%" x2="56%" y2="38%" stroke="rgba(220,38,38,0.6)" stroke-width="2" fill="none"/>
+    </svg>
+    <div class="node node-theme" role="button" tabindex="0" aria-label="Climate Change — theme node">
+      <div class="node-label" style="text-transform:uppercase;letter-spacing:-0.01em;font-size:16px;">Climate<br>Change</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center;">
+      <div class="node node-code" role="button" tabindex="0" aria-label="Avoidance behavior — code node">
+        <div class="node-label" style="font-size:12px;text-transform:uppercase;letter-spacing:0.02em;">AVOIDANCE<br>BEHAVIOR</div>
+      </div>
+      <div class="node node-code" role="button" tabindex="0" aria-label="Denial of impact — code node">
+        <div class="node-label" style="font-size:12px;text-transform:uppercase;letter-spacing:0.02em;">DENIAL OF<br>IMPACT</div>
+      </div>
+    </div>
+    <div class="tooltip-demo" role="tooltip" style="color:#f0ebe3;">
+      <div class="tooltip-inner">
+        <div class="tooltip-accent"></div>
+        <div class="tooltip-body">
+          <div class="tooltip-code" style="color:#dc2626;font-size:14px;text-transform:uppercase;letter-spacing:0.04em;font-weight:800;">AVOIDANCE BEHAVIOR</div>
+          <div class="tooltip-quote" style="color:rgba(240,235,227,0.75);">"I just try not to think about it too much, you know?"</div>
+          <div class="tooltip-source" style="color:rgba(240,235,227,0.4);">↳ INTERVIEW_04.DOCX</div>
+        </div>
+      </div>
+    </div>
+    <span class="section-label" style="color:rgba(15,13,10,0.5);">E · Neo-Brutalist — Bricolage Grotesque — Red/Black on Cream</span>
+  </div>
+  <div class="demo-statusbar">
+    <span><b>24</b> codes</span><span><b>5</b> themes</span><span><b>3</b> unassigned</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THEME F — Academic Archive
+══════════════════════════════════════════════════════════════════════════ -->
+<section id="theme-f" class="theme-panel" role="tabpanel">
+  <div class="demo-toolbar">
+    <span class="app-title">Thematic<span>Map</span></span>
+    <button class="tb-btn primary">↑ Import</button>
+    <button class="tb-btn">+ Theme</button>
+    <button class="tb-btn">+ Code</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn">↔ Connect</button>
+    <button class="tb-btn">⊞ Fit</button>
+    <div class="tb-divider"></div>
+    <div class="search-pill search-demo">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input placeholder="Search nodes…" aria-label="Search nodes" />
+      <span class="search-filter-chip" style="background:rgba(217,119,6,0.15);color:#d97706;">Themes</span>
+      <span class="search-filter-chip" style="background:rgba(99,102,241,0.12);color:#818cf8;">Codes</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="tb-btn">↓ PNG</button>
+    <button class="tb-btn" style="color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.18);">✕ Clear</button>
+  </div>
+  <div class="demo-canvas">
+    <svg class="connector-wrap" aria-hidden="true">
+      <line x1="42%" y1="50%" x2="30%" y2="42%" stroke="rgba(217,119,6,0.2)" stroke-width="1.5" fill="none"/>
+      <line x1="42%" y1="50%" x2="28%" y2="60%" stroke="rgba(217,119,6,0.2)" stroke-width="1.5" fill="none"/>
+      <line class="animated-dash" x1="42%" y1="50%" x2="56%" y2="38%" stroke="rgba(217,119,6,0.45)" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="node node-theme" role="button" tabindex="0" aria-label="Climate Change — theme node">
+      <div class="node-label" style="font-style:italic;">Climate<br>Change</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center;">
+      <div class="node node-code" role="button" tabindex="0" aria-label="Avoidance behavior — code node">
+        <div class="node-label" style="font-size:12px;">Avoidance<br>behavior</div>
+      </div>
+      <div class="node node-code" role="button" tabindex="0" aria-label="Denial of impact — code node">
+        <div class="node-label" style="font-size:12px;">Denial of<br>impact</div>
+      </div>
+    </div>
+    <div class="tooltip-demo" role="tooltip">
+      <div class="tooltip-inner">
+        <div class="tooltip-accent"></div>
+        <div class="tooltip-body">
+          <div class="tooltip-code" style="color:#d97706;">Avoidance behavior</div>
+          <div class="tooltip-quote" style="color:rgba(254,243,199,0.7);">"I just try not to think about it too much, you know?"</div>
+          <div class="tooltip-source" style="color:rgba(254,243,199,0.35);">↳ Interview_04.docx</div>
+        </div>
+      </div>
+    </div>
+    <span class="section-label" style="color:rgba(217,119,6,0.4);">F · Academic Archive — Cormorant Garamond + Libre Baskerville — Aged Gold</span>
+  </div>
+  <div class="demo-statusbar">
+    <span><b>24</b> codes</span><span><b>5</b> themes</span><span><b>3</b> unassigned</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THEME G — Organic/Sage
+══════════════════════════════════════════════════════════════════════════ -->
+<section id="theme-g" class="theme-panel" role="tabpanel">
+  <div class="demo-toolbar">
+    <span class="app-title">Thematic<span>Map</span></span>
+    <button class="tb-btn primary">↑ Import</button>
+    <button class="tb-btn">+ Theme</button>
+    <button class="tb-btn">+ Code</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn">↔ Connect</button>
+    <button class="tb-btn">⊞ Fit</button>
+    <div class="tb-divider"></div>
+    <div class="search-pill search-demo">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input placeholder="Search nodes…" aria-label="Search nodes" />
+      <span class="search-filter-chip" style="background:rgba(134,239,172,0.12);color:#86efac;">Themes</span>
+      <span class="search-filter-chip" style="background:rgba(251,191,36,0.12);color:#fbbf24;">Codes</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="tb-btn">↓ PNG</button>
+    <button class="tb-btn" style="color:rgba(248,113,113,0.6);border-color:rgba(248,113,113,0.15);">✕ Clear</button>
+  </div>
+  <div class="demo-canvas">
+    <svg class="connector-wrap" aria-hidden="true">
+      <line x1="42%" y1="50%" x2="30%" y2="42%" stroke="rgba(134,239,172,0.18)" stroke-width="1.5" fill="none"/>
+      <line x1="42%" y1="50%" x2="28%" y2="60%" stroke="rgba(134,239,172,0.18)" stroke-width="1.5" fill="none"/>
+      <line class="animated-dash" x1="42%" y1="50%" x2="56%" y2="38%" stroke="rgba(134,239,172,0.45)" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="node node-theme" role="button" tabindex="0" aria-label="Climate Change — theme node">
+      <div class="node-label">Climate<br>Change</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center;">
+      <div class="node node-code" role="button" tabindex="0" aria-label="Avoidance behavior — code node">
+        <div class="node-label" style="font-size:13px;">Avoidance<br>behavior</div>
+      </div>
+      <div class="node node-code" role="button" tabindex="0" aria-label="Denial of impact — code node">
+        <div class="node-label" style="font-size:13px;">Denial of<br>impact</div>
+      </div>
+    </div>
+    <div class="tooltip-demo" role="tooltip">
+      <div class="tooltip-inner">
+        <div class="tooltip-accent"></div>
+        <div class="tooltip-body">
+          <div class="tooltip-code" style="color:#86efac;">Avoidance behavior</div>
+          <div class="tooltip-quote" style="color:rgba(240,253,244,0.7);">"I just try not to think about it too much, you know?"</div>
+          <div class="tooltip-source" style="color:rgba(240,253,244,0.33);">↳ Interview_04.docx</div>
+        </div>
+      </div>
+    </div>
+    <span class="section-label" style="color:rgba(134,239,172,0.35);">G · Organic/Sage — Instrument Serif + Be Vietnam Pro — Sage Green/Amber</span>
+  </div>
+  <div class="demo-statusbar">
+    <span><b>24</b> codes</span><span><b>5</b> themes</span><span><b>3</b> unassigned</span>
+  </div>
+</section>
+
+<script>
+  function showTheme(id) {
+    document.querySelectorAll('.theme-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    document.getElementById('theme-' + id).classList.add('active');
+    const tabs = document.querySelectorAll('.nav-tab');
+    const idx = ['a','b','c','d','e','f','g'].indexOf(id);
+    tabs[idx].classList.add('active');
+    tabs[idx].setAttribute('aria-selected', 'true');
+  }
+
+  // Keyboard nav for tabs
+  document.querySelectorAll('.nav-tab').forEach((tab, i, tabs) => {
+    tab.addEventListener('keydown', e => {
+      const ids = ['a','b','c','d','e','f','g'];
+      if (e.key === 'ArrowRight') { showTheme(ids[(i+1) % ids.length]); tabs[(i+1) % ids.length].focus(); }
+      if (e.key === 'ArrowLeft') { showTheme(ids[(i-1+ids.length) % ids.length]); tabs[(i-1+ids.length) % ids.length].focus(); }
+    });
+  });
+</script>
+</body>
+</html>
