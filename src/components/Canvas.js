@@ -14,7 +14,7 @@
  *   - D3 simulation mutates node objects in-place (adds x, y, vx, vy)
  *   - Canvas re-renders on every tick to show live positions
  *   - SVG edges update synchronously with node positions
- *   - CodeNode components accept Framer Motion drag props
+ *   - GraphNode component accepts Framer Motion drag props
  *   - Connection mode: click one code node, then another to create edge
  */
 
@@ -559,8 +559,8 @@ export default function Canvas({
               isSelected={isSelected}
               isConnecting={isConnecting}
               connectMode={connectMode}
-              focusThemeId={null}
-              focusedNodeIds={new Set()}
+              focusThemeId={null}        {/* TODO Task 8: wire from App.js focusThemeId state */}
+              focusedNodeIds={new Set()} {/* TODO Task 8: wire from App.js computed focusedNodeIds */}
               onClick={handleClick}
               onContextMenu={handleContextMenu}
               onMouseEnter={handleMouseEnter}
@@ -568,7 +568,6 @@ export default function Canvas({
               onPointerDown={(e) => handleNodePointerDown(node.id, e)}
               onPointerMove={(e) => handleNodePointerMove(node.id, e)}
               onPointerUp={(e) => handleNodePointerUp(node.id, e)}
-              index={i}
             />
           );
         })}
