@@ -17,7 +17,7 @@
  *   - contextMenu:   position + items
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { GraphProvider, useGraphDispatch, useGraph, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
 import { loadPhysicsParams } from './utils/forceSimulation';
 import { exportToPng, exportToPdf } from './utils/exportUtils';
@@ -35,6 +35,7 @@ function AppInner() {
   const { nodes, edges } = useGraph();
   const canvasRef = useRef(null);
   const fitViewFn = useRef(null);
+  const alignTriggerRef = useRef(null);
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [connectMode,   setConnectMode]   = useState(false);
@@ -78,6 +79,52 @@ function AppInner() {
     if (window.confirm('Clear the entire canvas? This cannot be undone.')) {
       dispatch({ type: 'CLEAR' });
     }
+  }
+
+  function handleAlign() {
+    const themeNodes = nodes.filter(n => n.type === 'theme');
+    const codeNodes  = nodes.filter(n => n.type === 'code');
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    const themeRingR = Math.max(300, themeNodes.length * 80);
+
+    // 1. Theme nodes on outer ring
+    themeNodes.forEach((theme, i) => {
+      const angle = (2 * Math.PI * i) / themeNodes.length - Math.PI / 2;
+      dispatch({ type: 'UPDATE_NODE', id: theme.id, changes: {
+        x: cx + Math.cos(angle) * themeRingR,
+        y: cy + Math.sin(angle) * themeRingR,
+      }});
+    });
+
+    // 2. Code nodes in sub-rings around their theme
+    themeNodes.forEach((theme, ti) => {
+      const themeAngle = (2 * Math.PI * ti) / themeNodes.length - Math.PI / 2;
+      const themeX     = cx + Math.cos(themeAngle) * themeRingR;
+      const themeY     = cy + Math.sin(themeAngle) * themeRingR;
+      const connected  = codeNodes.filter(n => n.primaryThemeId === theme.id);
+      const codeRingR  = 120 + connected.length * 12;
+      connected.forEach((code, ci) => {
+        const codeAngle = (2 * Math.PI * ci) / connected.length - Math.PI / 2;
+        dispatch({ type: 'UPDATE_NODE', id: code.id, changes: {
+          x: themeX + Math.cos(codeAngle) * codeRingR,
+          y: themeY + Math.sin(codeAngle) * codeRingR,
+        }});
+      });
+    });
+
+    // 3. Unassigned codes at canvas center
+    const unassigned = codeNodes.filter(n => !n.primaryThemeId);
+    unassigned.forEach((code, i) => {
+      const angle = (2 * Math.PI * i) / Math.max(unassigned.length, 1);
+      dispatch({ type: 'UPDATE_NODE', id: code.id, changes: {
+        x: cx + Math.cos(angle) * 80,
+        y: cy + Math.sin(angle) * 80,
+      }});
+    });
+
+    // 4. Reheat simulation
+    alignTriggerRef.current?.();
   }
 
   async function handleExportPng() {
@@ -141,6 +188,7 @@ function AppInner() {
         onExportPng={handleExportPng}
         onExportPdf={handleExportPdf}
         onTogglePhysics={() => setPhysicsOpen(o => !o)}
+        onAlign={handleAlign}
         onClear={handleClear}
         searchOpen={searchOpen}
         searchQuery={searchQuery}
@@ -156,6 +204,7 @@ function AppInner() {
           physicsParams={physicsParams}
           onContextMenu={handleContextMenu}
           onFitReady={(fn) => { fitViewFn.current = fn; }}
+          onAlignReady={(fn) => { alignTriggerRef.current = fn; }}
           searchQuery={searchQuery}
           searchFilters={searchFilters}
         />

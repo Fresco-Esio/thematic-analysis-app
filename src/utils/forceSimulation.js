@@ -82,7 +82,7 @@ export function createSimulation(nodes, edges, onTick, params = DEFAULT_PHYSICS)
     .alphaDecay(0.01)   // slow cooling so the graph stays lively
     .on('tick', () => onTick(simNodes, simEdges));
 
-  return {
+  const wrapper = {
     /**
      * Called when nodes or edges change in GraphContext.
      * Restarts the simulation with updated data.
@@ -136,9 +136,17 @@ export function createSimulation(nodes, edges, onTick, params = DEFAULT_PHYSICS)
       return pos;
     },
 
+    /** Set simulation alpha directly */
+    alpha(val) { sim.alpha(val); return wrapper; },
+
+    /** Restart the simulation */
+    restart() { sim.restart(); return wrapper; },
+
     /** Stop simulation and clean up */
     destroy() {
       sim.stop();
     },
   };
+
+  return wrapper;
 }

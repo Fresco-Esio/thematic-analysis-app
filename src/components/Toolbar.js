@@ -43,6 +43,7 @@ export default function Toolbar({
   onExportPng,
   onExportPdf,
   onTogglePhysics,
+  onAlign,
   onClear,
   searchOpen,
   searchQuery,
@@ -78,6 +79,7 @@ export default function Toolbar({
         {connectMode ? '✕ Cancel Connect' : '↔ Connect'}
       </TbBtn>
       <TbBtn onClick={onFitView}>⊞ Fit View</TbBtn>
+      <TbBtn onClick={onAlign}>⊹ Align</TbBtn>
 
       <div className="w-px h-6 bg-slate-600 mx-1" />
 

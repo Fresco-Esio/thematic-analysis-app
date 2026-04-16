@@ -146,6 +146,7 @@ export default function Canvas({
   physicsParams,
   onContextMenu,
   onFitReady,
+  onAlignReady,
   searchQuery = '',
   searchFilters = { themes: true, codes: true },
 }) {
@@ -375,6 +376,18 @@ export default function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Expose align reheat to parent on mount
+  useEffect(() => {
+    if (onAlignReady) {
+      onAlignReady(() => {
+        if (simulation.current) {
+          simulation.current.alpha(0.5).restart();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-fit once on open when nodes exist
   const hasAutoFitted = useRef(false);
   useEffect(() => {
@@ -387,10 +400,10 @@ export default function Canvas({
   // ── Search Logic ──────────────────────────────────────────────────────────
 
   const searchActive = searchQuery.trim().length > 0;
-  const lowerQuery = searchQuery.toLowerCase().trim();
 
   const matchedNodeIds = useMemo(() => {
     if (!searchActive) return new Set();
+    const lowerQuery = searchQuery.toLowerCase().trim();
     return new Set(
       graphState.nodes
         .filter(n => {
