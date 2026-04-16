@@ -19,8 +19,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
-import { parseFile, buildGraphFromRows, generateTemplate } from '../../utils/importUtils';
-import { UNASSIGNED_COLOR } from '../../context/GraphContext';
+import { parseFile, buildGraphFromRows, generateTemplate, getSheetNames } from '../../utils/importUtils';
 
 export default function ImportModal({ open, onClose }) {
   const { nodes }  = useGraph();
@@ -29,10 +28,12 @@ export default function ImportModal({ open, onClose }) {
   const [step,     setStep]     = useState(1);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
-  const [rows,     setRows]     = useState([]);
   const [result,   setResult]   = useState(null); // buildGraphFromRows output
   const [clearFirst, setClearFirst] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [sheetNames,    setSheetNames]    = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState('');
+  const [pendingFile,   setPendingFile]   = useState(null);
   const fileInputRef = useRef(null);
 
   if (!open) return null;
@@ -43,14 +44,30 @@ export default function ImportModal({ open, onClose }) {
     setLoading(true);
     setError(null);
     setFileName(file.name);
+    setPendingFile(file);
     try {
-      const parsed = await parseFile(file);
-      setRows(parsed);
+      const ext = file.name.split('.').pop().toLowerCase();
 
+      // Check for multi-sheet workbooks (xlsx/xls only)
+      if (ext === 'xlsx' || ext === 'xls') {
+        const sheets = await getSheetNames(file);
+        setSheetNames(sheets);
+
+        if (sheets.length > 1) {
+          // Go to sheet selector step
+          setSelectedSheet('');
+          setStep(2);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Single sheet or CSV: proceed directly to preview
+      const parsed = await parseFile(file);
       const existingThemes = nodes.filter(n => n.type === 'theme');
       const built = buildGraphFromRows(parsed, clearFirst ? [] : existingThemes);
       setResult(built);
-      setStep(2);
+      setStep(3);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -99,8 +116,26 @@ export default function ImportModal({ open, onClose }) {
     URL.revokeObjectURL(url);
   }
 
+  async function handleSheetConfirm() {
+    if (!selectedSheet || !pendingFile) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const parsed = await parseFile(pendingFile, selectedSheet);
+      const existingThemes = nodes.filter(n => n.type === 'theme');
+      const built = buildGraphFromRows(parsed, clearFirst ? [] : existingThemes);
+      setResult(built);
+      setStep(3);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function handleClose() {
-    setStep(1); setRows([]); setResult(null); setError(null); setFileName('');
+    setStep(1); setResult(null); setError(null); setFileName('');
+    setSheetNames([]); setSelectedSheet(''); setPendingFile(null);
     onClose();
   }
 
@@ -121,7 +156,11 @@ export default function ImportModal({ open, onClose }) {
         <div className="flex items-center gap-3 mb-6">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-base font-bold ${step === 1 ? 'bg-indigo-600 text-white' : 'bg-slate-600 text-slate-400'}`}>1</div>
           <div className="flex-1 h-px bg-slate-600" />
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-base font-bold ${step === 2 ? 'bg-indigo-600 text-white' : 'bg-slate-600 text-slate-400'}`}>2</div>
+          {sheetNames.length > 1 && <>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-base font-bold ${step === 2 ? 'bg-indigo-600 text-white' : 'bg-slate-600 text-slate-400'}`}>2</div>
+            <div className="flex-1 h-px bg-slate-600" />
+          </>}
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-base font-bold ${step === (sheetNames.length > 1 ? 3 : 2) ? 'bg-indigo-600 text-white' : 'bg-slate-600 text-slate-400'}`}>{sheetNames.length > 1 ? 3 : 2}</div>
         </div>
 
         {/* ── STEP 1: Upload ─────────────────────────────────────────────────── */}
@@ -168,8 +207,48 @@ export default function ImportModal({ open, onClose }) {
           </>
         )}
 
-        {/* ── STEP 2: Preview ────────────────────────────────────────────────── */}
-        {step === 2 && result && (
+        {/* ── STEP 2: Sheet Selector ────────────────────────────────────────────────── */}
+        {step === 2 && sheetNames.length > 1 && !result && (
+          <>
+            <h2 className="text-xl font-bold text-white mb-1">Select Sheet</h2>
+            <p className="text-base text-slate-400 mb-6">This workbook has {sheetNames.length} sheets. Choose which one to import.</p>
+
+            <div className="flex flex-col gap-2 mb-6">
+              {sheetNames.map(name => (
+                <button
+                  key={name}
+                  onClick={() => setSelectedSheet(name)}
+                  className={`px-4 py-3 rounded-lg text-left text-base font-medium transition-colors ${
+                    selectedSheet === name
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+
+            {error && <p className="text-base text-red-400 mb-4">⚠ {error}</p>}
+            {loading && <p className="text-base text-slate-400">Parsing file…</p>}
+
+            <div className="flex justify-between">
+              <button onClick={() => setStep(1)} className="text-base font-semibold text-slate-400 px-5 py-2 rounded-lg border border-slate-600 hover:bg-slate-700 transition-colors">
+                ← Back
+              </button>
+              <button
+                onClick={handleSheetConfirm}
+                disabled={!selectedSheet || loading}
+                className="text-base font-bold text-white px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── STEP 3: Preview ────────────────────────────────────────────────── */}
+        {step === 3 && result && (
           <>
             <h2 className="text-xl font-bold text-white mb-1">Preview Import</h2>
             <p className="text-base text-slate-400 mb-1">
@@ -215,7 +294,7 @@ export default function ImportModal({ open, onClose }) {
             </div>
 
             <div className="flex justify-between items-center">
-              <button onClick={() => setStep(1)} className="text-base font-semibold text-slate-400 px-5 py-2 rounded-lg border border-slate-600 hover:bg-slate-700 transition-colors">
+              <button onClick={() => setStep(sheetNames.length > 1 ? 2 : 1)} className="text-base font-semibold text-slate-400 px-5 py-2 rounded-lg border border-slate-600 hover:bg-slate-700 transition-colors">
                 ← Back
               </button>
               <div className="flex gap-3">
