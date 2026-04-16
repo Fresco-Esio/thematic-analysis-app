@@ -18,15 +18,17 @@
 
 import React, { useRef, useEffect } from 'react';
 
-function TbBtn({ children, onClick, variant = 'secondary', active = false }) {
-  const base    = 'px-4 py-2 rounded-lg font-semibold text-base transition-all cursor-pointer border-0';
-  const styles  = {
-    primary:   'bg-indigo-600 text-white hover:bg-indigo-500',
-    secondary: `bg-transparent text-slate-400 border border-slate-600 hover:bg-slate-700 hover:text-slate-200 ${active ? 'bg-indigo-900 text-indigo-300 border-indigo-500' : ''}`,
-    danger:    'bg-transparent text-red-400 border border-red-900 hover:bg-red-900/30',
+function TbBtn({ children, onClick, variant = 'secondary', active = false, ...rest }) {
+  const base = 'px-4 py-2 font-bold text-base cursor-pointer transition-all border-2';
+  const styles = {
+    primary: 'bg-[#dc2626] text-white border-[#dc2626] hover:bg-[#b91c1c] shadow-[3px_3px_0_#0f0d0a]',
+    secondary: active
+      ? 'bg-white text-[#dc2626] border-[#dc2626]'
+      : 'bg-transparent text-white border-white hover:bg-white hover:text-[#0f0d0a]',
+    danger: 'bg-transparent text-[#dc2626] border-[#dc2626] hover:bg-[#dc2626] hover:text-white',
   };
   return (
-    <button className={`${base} ${styles[variant]}`} onClick={onClick}>
+    <button className={`${base} ${styles[variant]}`} onClick={onClick} {...rest}>
       {children}
     </button>
   );
@@ -63,17 +65,17 @@ export default function Toolbar({
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700 z-10 flex-shrink-0 flex-wrap">
+    <div className="flex items-center gap-2 px-4 py-2 bg-[#0f0d0a] border-b-2 border-[#dc2626] z-10 flex-shrink-0 flex-wrap">
       {/* App title */}
-      <span className="text-xl font-bold text-slate-200 mr-3">
-        Thematic<span className="text-indigo-400">Map</span>
+      <span className="text-2xl font-bold text-white mr-3">
+        Thematic<span style={{ color: '#dc2626' }}>Map</span>
       </span>
 
       <TbBtn variant="primary" onClick={onImport}>⬆ Import</TbBtn>
-      <TbBtn onClick={onAddTheme}>＋ Add Theme</TbBtn>
-      <TbBtn onClick={onAddCode}>＋ Add Code</TbBtn>
+      <TbBtn variant="primary" onClick={onAddTheme}>＋ Add Theme</TbBtn>
+      <TbBtn variant="primary" onClick={onAddCode}>＋ Add Code</TbBtn>
 
-      <div className="w-px h-6 bg-slate-600 mx-1" />
+      <div className="w-px h-6 bg-white/20 mx-1" />
 
       <TbBtn onClick={onToggleConnect} active={connectMode}>
         {connectMode ? '✕ Cancel Connect' : '↔ Connect'}
@@ -81,7 +83,7 @@ export default function Toolbar({
       <TbBtn onClick={onFitView}>⊞ Fit View</TbBtn>
       <TbBtn onClick={onAlign}>⊹ Align</TbBtn>
 
-      <div className="w-px h-6 bg-slate-600 mx-1" />
+      <div className="w-px h-6 bg-white/20 mx-1" />
 
       <TbBtn onClick={onExportPng}>↓ PNG</TbBtn>
       <TbBtn onClick={onExportPdf}>↓ PDF</TbBtn>
@@ -98,7 +100,8 @@ export default function Toolbar({
               onKeyDown={handleSearchKeyDown}
               placeholder="Search nodes…"
               aria-label="Search nodes"
-              className="text-base bg-slate-700 text-white border border-slate-500 rounded-lg px-3 py-2 w-52 focus:outline-none focus:border-indigo-400"
+              className="text-base text-[#0f0d0a] border-2 border-white px-3 py-2 w-52 focus:outline-none focus:border-[#dc2626] font-bold"
+              style={{ backgroundColor: '#ffffff' }}
             />
             <TbBtn
               onClick={() => onSearchFilterChange('themes')}

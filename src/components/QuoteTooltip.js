@@ -37,14 +37,19 @@ export default function QuoteTooltip({ visible, x, y, code, quote, source, color
           exit="hidden"
           role="tooltip"
           style={{
-            position: 'absolute',
+            position:        'absolute',
             left,
             top,
-            borderColor: color + '55',
-            pointerEvents: 'none',
-            zIndex: 50,
+            backgroundColor: '#fff',
+            border:          '2px solid #0f0d0a',
+            boxShadow:       '4px 4px 0 #0f0d0a',
+            borderRadius:    0,
+            pointerEvents:   'none',
+            zIndex:          50,
+            padding:         '16px',
+            maxWidth:        '320px',
+            color:           '#0f0d0a',
           }}
-          className="bg-slate-800 border rounded-xl p-4 max-w-sm shadow-2xl"
         >
           {/* Code label */}
           <p className="text-base font-bold mb-2" style={{ color }}>
@@ -52,12 +57,12 @@ export default function QuoteTooltip({ visible, x, y, code, quote, source, color
           </p>
 
           {/* Raw quote */}
-          <p className="text-base text-slate-200 italic leading-relaxed mb-3">
+          <p className="text-base italic leading-relaxed mb-3" style={{ color: '#0f0d0a' }}>
             "{quote}"
           </p>
 
           {/* Source */}
-          <p className="text-base text-slate-500 font-semibold uppercase tracking-wide">
+          <p className="text-base font-semibold uppercase tracking-wide" style={{ color: '#6b6560' }}>
             ↳ {source || 'Unknown source'}
           </p>
         </motion.div>

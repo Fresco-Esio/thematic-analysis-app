@@ -72,11 +72,11 @@ export default function GraphNode({
       return `0 0 0 3px #fff, 0 0 16px 4px ${color}`;
     }
     if (isTheme) {
-      // Planet: stronger hard shadow in theme color
+      // Planet: hard shadow in semi-transparent theme color
       return `6px 6px 0 ${color}88`;
     }
-    // Satellite: lighter hard shadow
-    return `4px 4px 0 rgba(0,0,0,0.35)`;
+    // Code node: hard black shadow
+    return `4px 4px 0 #0f0d0a`;
   };
 
   // Keyboard handler for accessibility
@@ -98,9 +98,9 @@ export default function GraphNode({
     },
   };
 
-  // Border: theme nodes get 3px, code nodes 2px
+  // Border: theme nodes get 3px solid black, code nodes 2px solid black
   const borderWidth = isTheme ? 3 : 2;
-  const borderColor = isTheme ? 'white' : 'rgba(255,255,255,0.25)';
+  const borderColor = '#0f0d0a';
 
   return (
     <motion.div
@@ -129,7 +129,7 @@ export default function GraphNode({
         width:           diameter,
         height:          diameter,
         borderRadius:    '50%',
-        backgroundColor: color,
+        backgroundColor: isTheme ? color : '#ffffff',
         border:          `${borderWidth}px solid ${borderColor}`,
         boxShadow:       getBoxShadow(),
         cursor:          connectMode ? 'crosshair' : 'grab',
@@ -141,7 +141,7 @@ export default function GraphNode({
         alignItems:      'center',
         justifyContent:  'center',
         padding:         0,
-        background:      color, // override button default
+        background:      isTheme ? color : '#ffffff', // override button default
         outline:         'none', // handled by focus-visible below
       }}
     >
@@ -150,7 +150,7 @@ export default function GraphNode({
         style={{
           textAlign:    'center',
           padding:      isTheme ? '10px 18px' : '10px 14px',
-          color:        'white',
+          color:        isTheme ? 'white' : '#0f0d0a',
           fontSize:     fontSize,
           fontWeight:   isTheme ? 700 : 600,
           lineHeight:   1.2,

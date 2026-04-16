@@ -515,7 +515,7 @@ export default function Canvas({
         position: 'relative',
         width: '100%',
         height: '100%',
-        backgroundColor: '#0f172a',
+        backgroundColor: 'var(--bg-canvas)',
       }}
       onMouseMove={handleCanvasMouseMove}
       onMouseLeave={handleCanvasMouseLeave}

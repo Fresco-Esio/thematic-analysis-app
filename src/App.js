@@ -179,7 +179,7 @@ function AppInner() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-canvas)', color: 'var(--text-primary)' }}>
 
       <Toolbar
         connectMode={connectMode}
@@ -223,10 +223,13 @@ function AppInner() {
       </div>
 
       {/* Status bar */}
-      <div className="flex gap-6 px-4 py-2 bg-slate-800 border-t border-slate-700 text-base text-slate-500">
-        <span><b className="text-slate-200">{codeCount}</b> codes</span>
-        <span><b className="text-slate-200">{themeCount}</b> themes</span>
-        <span><b className="text-slate-400">{unassignedCount}</b> unassigned</span>
+      <div
+        className="flex gap-6 px-4 py-2 border-t border-slate-700 text-base font-bold"
+        style={{ backgroundColor: 'var(--bg-toolbar)', borderColor: '#dc2626', borderTopWidth: '2px', color: 'white' }}
+      >
+        <span>{themeCount} themes</span>
+        <span>{codeCount} codes</span>
+        <span style={{ color: '#dc2626' }}>{unassignedCount} unassigned</span>
       </div>
 
       {/* Modals */}

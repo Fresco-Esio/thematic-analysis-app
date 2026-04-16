@@ -47,9 +47,9 @@ export default function ContextMenu({ visible, x, y, items, onClose }) {
       ref={ref}
       style={{
         position: 'fixed', left, top, zIndex: 500,
-        background: '#1e293b', border: '1px solid #334155',
-        borderRadius: 10, overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        background: '#ffffff', border: '2px solid #0f0d0a',
+        borderRadius: 0, overflow: 'hidden',
+        boxShadow: '4px 4px 0 #0f0d0a',
         minWidth: 180,
       }}
     >
@@ -60,13 +60,19 @@ export default function ContextMenu({ visible, x, y, items, onClose }) {
           style={{
             display: 'block', width: '100%',
             padding: '10px 16px', textAlign: 'left',
-            fontSize: 16, fontWeight: 500,
-            color: item.danger ? '#f87171' : '#e2e8f0',
+            fontSize: 16, fontWeight: 700,
+            color: item.danger ? '#dc2626' : '#0f0d0a',
             background: 'transparent', border: 'none', cursor: 'pointer',
-            borderBottom: i < items.length - 1 ? '1px solid #0f172a' : 'none',
+            borderBottom: i < items.length - 1 ? '1px solid #0f0d0a' : 'none',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = item.danger ? '#7f1d1d33' : '#334155'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = item.danger ? '#dc2626' : '#f0ebe3';
+            if (item.danger) e.currentTarget.style.color = '#ffffff';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = item.danger ? '#dc2626' : '#0f0d0a';
+          }}
         >
           {item.label}
         </button>

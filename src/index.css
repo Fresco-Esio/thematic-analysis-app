@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-canvas:    #f0ebe3;
+  --bg-toolbar:   #0f0d0a;
+  --bg-surface:   #ffffff;
+  --text-primary: #0f0d0a;
+  --text-muted:   #6b6560;
+  --accent:       #dc2626;
+  --border:       #0f0d0a;
+  --shadow-hard:  6px 6px 0 #dc2626;
+  --shadow-dark:  6px 6px 0 #0f0d0a;
+}
+
 /* Ensure minimum 16px font size globally */
 html { font-size: 16px; }
-body { font-size: 16px; }
+body {
+  font-size: 16px;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+}
