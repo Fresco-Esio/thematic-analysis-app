@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Thematic Analysis App">
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="#0f172a"/>
+
+  <!-- Edges: theme node to each code node -->
+  <line x1="32" y1="30" x2="13" y2="48" stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.65"/>
+  <line x1="32" y1="30" x2="32" y2="50" stroke="#8b5cf6" stroke-width="1.5" stroke-opacity="0.65"/>
+  <line x1="32" y1="30" x2="51" y2="48" stroke="#a855f7" stroke-width="1.5" stroke-opacity="0.65"/>
+
+  <!-- Theme node (top, large — represents a theme) -->
+  <circle cx="32" cy="20" r="11" fill="#6366f1"/>
+  <circle cx="32" cy="20" r="11" fill="none" stroke="#a5b4fc" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Code nodes (bottom — represent coded excerpts) -->
+  <circle cx="13" cy="50" r="7" fill="#10b981"/>
+  <circle cx="32" cy="52" r="7" fill="#f59e0b"/>
+  <circle cx="51" cy="50" r="7" fill="#ec4899"/>
+</svg>

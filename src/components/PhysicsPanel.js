@@ -82,8 +82,9 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
         width: open ? 290 : 0,
         minWidth: open ? 290 : 0,
         overflow: 'hidden',
-        background: '#1e293b',
-        borderLeft: open ? '1px solid #334155' : 'none',
+        background: '#ffffff',
+        borderLeft: open ? '2px solid #0f0d0a' : 'none',
+        boxShadow: open ? '-6px 0 0 #0f0d0a' : 'none',
         transition: 'width 0.25s ease, min-width 0.25s ease',
         flexShrink: 0,
         display: 'flex',
@@ -103,22 +104,23 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
             <h3 style={{
-              fontSize: 11, fontWeight: 700, color: '#64748b',
+              fontSize: 11, fontWeight: 700, color: '#0f0d0a',
               textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0,
             }}>
               Physics Controls
             </h3>
             <button
               onClick={onClose}
+              aria-label="Close physics panel"
               title="Close panel (or click outside)"
               style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: '#475569', fontSize: 16, lineHeight: 1,
-                padding: '2px 6px', borderRadius: 4,
+                background: 'transparent', border: '2px solid #0f0d0a', cursor: 'pointer',
+                color: '#0f0d0a', fontSize: 16, lineHeight: 1,
+                padding: '2px 6px',
                 transition: 'color 0.15s, background 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#e2e8f0'; e.currentTarget.style.background = '#334155'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'transparent'; }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.background = '#0f0d0a'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#0f0d0a'; e.currentTarget.style.background = 'transparent'; }}
             >
               ✕
             </button>
@@ -128,9 +130,9 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
             const raw = displayValue(key, params[key], transform);
             return (
               <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#94a3b8' }}>
-                  <span>{label}</span>
-                  <span style={{ color: '#e2e8f0', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#0f0d0a' }}>
+                  <span style={{ fontWeight: 600 }}>{label}</span>
+                  <span style={{ color: '#0f0d0a', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                     {raw}{unit}
                   </span>
                 </div>
@@ -138,8 +140,9 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
                   type="range"
                   min={min} max={max} step={step}
                   value={raw}
+                  aria-label={label}
                   onChange={e => handleChange(key, Number(e.target.value), transform)}
-                  style={{ width: '100%', accentColor: '#6366f1', cursor: 'pointer' }}
+                  style={{ width: '100%', accentColor: '#dc2626', cursor: 'pointer' }}
                 />
               </div>
             );
@@ -153,14 +156,14 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
               resetTimer();
             }}
             style={{
-              marginTop: 'auto', paddingTop: 8, fontSize: 13, fontWeight: 600,
-              color: '#64748b', background: 'transparent',
-              border: '1px solid #1e3a5f', borderRadius: 8,
+              marginTop: 'auto', fontSize: 13, fontWeight: 700,
+              color: '#0f0d0a', background: 'transparent',
+              border: '2px solid #0f0d0a',
               padding: '7px 0', cursor: 'pointer',
-              transition: 'color 0.15s, border-color 0.15s',
+              transition: 'color 0.15s, background 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#334155'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#1e3a5f'; }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.background = '#0f0d0a'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#0f0d0a'; e.currentTarget.style.background = 'transparent'; }}
           >
             Reset Defaults
           </button>

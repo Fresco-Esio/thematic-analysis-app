@@ -1,11 +1,18 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Thematic Analysis",
+  "name": "Thematic Analysis App — Braun & Clarke TA",
+  "description": "Visual workspace for Reflexive Thematic Analysis (Braun & Clarke). Map coded excerpts to themes on a physics-enabled canvas.",
   "icons": [
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
+    },
+    {
+      "src": "logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
       "src": "logo192.png",
@@ -20,6 +27,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a"
 }

@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-canvas:    #f0ebe3;
+  --bg-toolbar:   #0f0d0a;
+  --bg-surface:   #ffffff;
+  --text-primary: #0f0d0a;
+  --text-muted:   #6b6560;
+  --accent:       #dc2626;
+  --border:       #0f0d0a;
+  /* Reference only — Tailwind JIT arbitrary values don't support var() in shadow-[...] */
+  --shadow-hard:  6px 6px 0 #dc2626;
+  --shadow-dark:  6px 6px 0 #0f0d0a;
+}
+
 /* Ensure minimum 16px font size globally */
 html { font-size: 16px; }
-body { font-size: 16px; }
+body {
+  font-size: 16px;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+}
+
+/* Accessible focus rings */
+:focus-visible {
+  outline: 3px solid #dc2626;
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

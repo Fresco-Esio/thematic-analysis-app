@@ -51,15 +51,16 @@ function normalizeHeader(raw) {
  * Each row object has keys: source, quote, code, theme (any may be undefined).
  *
  * @param {File} file
+ * @param {string} sheetName - optional sheet name for Excel files
  * @returns {Promise<Array<{source,quote,code,theme}>>}
  */
-export async function parseFile(file) {
+export async function parseFile(file, sheetName = null) {
   const ext = file.name.split('.').pop().toLowerCase();
 
   if (ext === 'csv') {
     return parseCsv(file);
   } else if (ext === 'xlsx' || ext === 'xls') {
-    return parseXlsx(file);
+    return parseXlsx(file, sheetName);
   } else {
     throw new Error(`Unsupported file type: .${ext}. Use .xlsx or .csv`);
   }
@@ -78,13 +79,13 @@ async function parseCsv(file) {
 }
 
 /** Parse XLSX using the xlsx library */
-async function parseXlsx(file) {
+async function parseXlsx(file, sheetName = null) {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
+  const sheet = workbook.SheetNames.includes(sheetName) ? sheetName : workbook.SheetNames[0];
+  const worksheetData = workbook.Sheets[sheet];
   // Convert to array of arrays (raw rows)
-  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  const raw = XLSX.utils.sheet_to_json(worksheetData, { header: 1, defval: null });
 
   if (raw.length < 2) return []; // No data rows
 
@@ -103,6 +104,19 @@ async function parseXlsx(file) {
     });
 
   return rows;
+}
+
+/**
+ * Get sheet names from an Excel file without parsing data.
+ * Returns array of sheet names.
+ *
+ * @param {File} file
+ * @returns {Promise<Array<string>>}
+ */
+export async function getSheetNames(file) {
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  return workbook.SheetNames;
 }
 
 /**

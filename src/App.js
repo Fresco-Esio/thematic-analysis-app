@@ -35,6 +35,7 @@ function AppInner() {
   const { nodes, edges } = useGraph();
   const canvasRef = useRef(null);
   const fitViewFn = useRef(null);
+  const alignTriggerRef = useRef(null);
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [connectMode,   setConnectMode]   = useState(false);
@@ -46,8 +47,16 @@ function AppInner() {
   const [codeEditId,     setCodeEditId]     = useState(null);
   const [themeEditId,    setThemeEditId]    = useState(null);
 
+  // ── Focus view ──────────────────────────────────────────────────────────────
+  const [focusThemeId, setFocusThemeId] = useState(null);
+
   // ── Context menu ────────────────────────────────────────────────────────────
   const [ctxMenu, setCtxMenu] = useState({ visible: false, x: 0, y: 0, items: [] });
+
+  // ── Search state
+  const [searchOpen,    setSearchOpen]    = useState(false);
+  const [searchQuery,   setSearchQuery]   = useState('');
+  const [searchFilters, setSearchFilters] = useState({ themes: true, codes: true });
 
   // ── Toolbar actions ─────────────────────────────────────────────────────────
 
@@ -75,6 +84,52 @@ function AppInner() {
     }
   }
 
+  function handleAlign() {
+    const themeNodes = nodes.filter(n => n.type === 'theme');
+    const codeNodes  = nodes.filter(n => n.type === 'code');
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    const themeRingR = Math.max(300, themeNodes.length * 80);
+
+    // 1. Theme nodes on outer ring
+    themeNodes.forEach((theme, i) => {
+      const angle = (2 * Math.PI * i) / themeNodes.length - Math.PI / 2;
+      dispatch({ type: 'UPDATE_NODE', id: theme.id, changes: {
+        x: cx + Math.cos(angle) * themeRingR,
+        y: cy + Math.sin(angle) * themeRingR,
+      }});
+    });
+
+    // 2. Code nodes in sub-rings around their theme
+    themeNodes.forEach((theme, ti) => {
+      const themeAngle = (2 * Math.PI * ti) / themeNodes.length - Math.PI / 2;
+      const themeX     = cx + Math.cos(themeAngle) * themeRingR;
+      const themeY     = cy + Math.sin(themeAngle) * themeRingR;
+      const connected  = codeNodes.filter(n => n.primaryThemeId === theme.id);
+      const codeRingR  = 120 + connected.length * 12;
+      connected.forEach((code, ci) => {
+        const codeAngle = (2 * Math.PI * ci) / connected.length - Math.PI / 2;
+        dispatch({ type: 'UPDATE_NODE', id: code.id, changes: {
+          x: themeX + Math.cos(codeAngle) * codeRingR,
+          y: themeY + Math.sin(codeAngle) * codeRingR,
+        }});
+      });
+    });
+
+    // 3. Unassigned codes at canvas center
+    const unassigned = codeNodes.filter(n => !n.primaryThemeId);
+    unassigned.forEach((code, i) => {
+      const angle = (2 * Math.PI * i) / Math.max(unassigned.length, 1) - Math.PI / 2;
+      dispatch({ type: 'UPDATE_NODE', id: code.id, changes: {
+        x: cx + Math.cos(angle) * 80,
+        y: cy + Math.sin(angle) * 80,
+      }});
+    });
+
+    // 4. Reheat simulation
+    alignTriggerRef.current?.();
+  }
+
   async function handleExportPng() {
     const el = document.getElementById('canvas-export-target');
     if (el) await exportToPng(el);
@@ -97,6 +152,7 @@ function AppInner() {
     } else if (type === 'theme-edit' || type === 'theme') {
       items = [
         { label: '✏ Rename / Edit Theme', action: () => setThemeEditId(id) },
+        { label: '⊙ Focus View', action: () => setFocusThemeId(id) },
         { label: '✕ Delete Theme', action: () => {
             const connectedCount = edges.filter(e => e.target === id).length;
             const msg = connectedCount > 0
@@ -123,7 +179,7 @@ function AppInner() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-canvas)', color: 'var(--text-primary)' }}>
 
       <Toolbar
         connectMode={connectMode}
@@ -136,7 +192,14 @@ function AppInner() {
         onExportPng={handleExportPng}
         onExportPdf={handleExportPdf}
         onTogglePhysics={() => setPhysicsOpen(o => !o)}
+        onAlign={handleAlign}
         onClear={handleClear}
+        searchOpen={searchOpen}
+        searchQuery={searchQuery}
+        searchFilters={searchFilters}
+        onSearchToggle={() => { setSearchOpen(o => !o); if (searchOpen) setSearchQuery(''); }}
+        onSearchChange={setSearchQuery}
+        onSearchFilterChange={(key) => setSearchFilters(f => ({ ...f, [key]: !f[key] }))}
       />
 
       <div className="flex flex-1 overflow-hidden" ref={canvasRef}>
@@ -145,6 +208,11 @@ function AppInner() {
           physicsParams={physicsParams}
           onContextMenu={handleContextMenu}
           onFitReady={(fn) => { fitViewFn.current = fn; }}
+          onAlignReady={(fn) => { alignTriggerRef.current = fn; }}
+          searchQuery={searchQuery}
+          searchFilters={searchFilters}
+          focusThemeId={focusThemeId}
+          onExitFocus={() => setFocusThemeId(null)}
         />
         <PhysicsPanel
           open={physicsOpen}
@@ -155,10 +223,13 @@ function AppInner() {
       </div>
 
       {/* Status bar */}
-      <div className="flex gap-6 px-4 py-2 bg-slate-800 border-t border-slate-700 text-base text-slate-500">
-        <span><b className="text-slate-200">{codeCount}</b> codes</span>
-        <span><b className="text-slate-200">{themeCount}</b> themes</span>
-        <span><b className="text-slate-400">{unassignedCount}</b> unassigned</span>
+      <div
+        className="flex gap-6 px-4 py-2 border-t-2 text-base font-bold"
+        style={{ backgroundColor: 'var(--bg-toolbar)', borderColor: '#dc2626', color: 'white' }}
+      >
+        <span>{themeCount} themes</span>
+        <span>{codeCount} codes</span>
+        <span style={{ color: '#dc2626' }}>{unassignedCount} unassigned</span>
       </div>
 
       {/* Modals */}

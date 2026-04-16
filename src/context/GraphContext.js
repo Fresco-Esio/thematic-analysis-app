@@ -58,7 +58,7 @@ const initialState = {
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
 
-function graphReducer(state, action) {
+export function graphReducer(state, action) {
   switch (action.type) {
 
     case 'ADD_NODES': {
@@ -84,9 +84,21 @@ function graphReducer(state, action) {
     }
 
     case 'DELETE_NODE': {
-      // Remove node and all edges that reference it
+      const nodeToDelete = state.nodes.find(n => n.id === action.id);
+      const isThemeNode = nodeToDelete?.type === 'theme';
+
+      // Remove node and all edges that reference it.
+      // If a theme is deleted, any code that uses it as its primary theme
+      // must be returned to the unassigned state.
       return {
-        nodes: state.nodes.filter(n => n.id !== action.id),
+        nodes: state.nodes
+          .filter(n => n.id !== action.id)
+          .map(n => {
+            if (isThemeNode && n.type === 'code' && n.primaryThemeId === action.id) {
+              return { ...n, primaryThemeId: null, color: UNASSIGNED_COLOR };
+            }
+            return n;
+          }),
         edges: state.edges.filter(
           e => e.source !== action.id && e.target !== action.id
         ),
@@ -178,22 +190,23 @@ const GraphStateContext    = createContext(null);
 const GraphDispatchContext = createContext(null);
 
 export function GraphProvider({ children }) {
-  const [state, dispatch] = useReducer(graphReducer, initialState);
-
-  // Restore from localStorage on mount
-  useEffect(() => {
+  // Restore persisted state synchronously via lazy initializer so the very
+  // first render already has the saved graph and the save effect never
+  // overwrites localStorage with an empty state.
+  const [state, dispatch] = useReducer(graphReducer, initialState, () => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.nodes && parsed.edges) {
-          dispatch({ type: 'SET_GRAPH', nodes: parsed.nodes, edges: parsed.edges });
+          return { nodes: parsed.nodes, edges: parsed.edges };
         }
       }
     } catch (e) {
       console.warn('Failed to restore graph from localStorage:', e);
     }
-  }, []);
+    return initialState;
+  });
 
   // Save to localStorage on every state change
   useEffect(() => {

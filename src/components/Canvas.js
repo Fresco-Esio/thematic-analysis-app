@@ -14,18 +14,17 @@
  *   - D3 simulation mutates node objects in-place (adds x, y, vx, vy)
  *   - Canvas re-renders on every tick to show live positions
  *   - SVG edges update synchronously with node positions
- *   - CodeNode components accept Framer Motion drag props
+ *   - GraphNode component accepts Framer Motion drag props
  *   - Connection mode: click one code node, then another to create edge
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as d3 from 'd3';
-import { createSimulation, loadPhysicsParams } from '../utils/forceSimulation';
+import { createSimulation } from '../utils/forceSimulation';
 import { useGraph, useGraphDispatch } from '../context/GraphContext';
-import CodeNode from './nodes/CodeNode';
-import ThemeNode, { THEME_NODE_SIZE } from './nodes/ThemeNode';
+import GraphNode from './nodes/GraphNode';
+import { getNodeRadius } from '../utils/nodeUtils';
 import QuoteTooltip from './QuoteTooltip';
-import { CODE_NODE_SIZE } from './nodes/CodeNode';
 import './Canvas.css';
 
 // ── Canvas Constants ──────────────────────────────────────────────────────────
@@ -33,7 +32,6 @@ import './Canvas.css';
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
 const TOOLTIP_OFFSET = 12; // pixels from mouse
-const CANVAS_PADDING = 200; // pixels around viewport
 
 // ── useCanvasState Hook ───────────────────────────────────────────────────────
 
@@ -91,19 +89,18 @@ function useCanvasState() {
  * @param {fn} onTick - callback when simulation updates
  * @returns { simulation: ref, positions: Map<id, {x,y}> }
  */
-function useDragAndSimulation(nodes, edges, onTick) {
+function useDragAndSimulation(nodes, edges, onTick, physicsParams) {
   const simulationRef = useRef(null);
   const positionsRef = useRef(new Map());
 
   useEffect(() => {
-    const params = loadPhysicsParams();
     const sim = createSimulation(nodes, edges, (simNodes) => {
       // Sync simulated positions into our map
       simNodes.forEach(n => {
         positionsRef.current.set(n.id, { x: n.x, y: n.y });
       });
       onTick();
-    }, params);
+    }, physicsParams);
 
     simulationRef.current = sim;
 
@@ -113,7 +110,9 @@ function useDragAndSimulation(nodes, edges, onTick) {
         simulationRef.current = null;
       }
     };
-  }, []); // Only initialize once
+    // Simulation is intentionally created once; graph updates flow through updateData.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update simulation data when nodes/edges change
   useEffect(() => {
@@ -121,6 +120,12 @@ function useDragAndSimulation(nodes, edges, onTick) {
       simulationRef.current.updateData(nodes, edges);
     }
   }, [nodes, edges]);
+
+  useEffect(() => {
+    if (simulationRef.current && physicsParams) {
+      simulationRef.current.updateParams(physicsParams);
+    }
+  }, [physicsParams]);
 
   return { simulation: simulationRef, positions: positionsRef };
 }
@@ -141,6 +146,11 @@ export default function Canvas({
   physicsParams,
   onContextMenu,
   onFitReady,
+  onAlignReady,
+  searchQuery = '',
+  searchFilters = { themes: true, codes: true },
+  focusThemeId = null,
+  onExitFocus,
 }) {
   const graphState = useGraph();
   const dispatch = useGraphDispatch();
@@ -168,9 +178,6 @@ export default function Canvas({
     if (!svgRef.current) return;
 
     const svg = d3.select(svgRef.current);
-    const width = svgRef.current.clientWidth || window.innerWidth;
-    const height = svgRef.current.clientHeight || window.innerHeight;
-
     // Create and attach zoom behavior
     const zoomBehavior = d3.zoom()
       .scaleExtent([MIN_ZOOM, MAX_ZOOM])
@@ -298,16 +305,6 @@ export default function Canvas({
     }
   }, [connectMode, canvasState, graphState.nodes, dispatch]);
 
-  const handleCodeNodeContextMenu = useCallback((nodeId, e) => {
-    e.preventDefault();
-    onContextMenu('code', nodeId, e.clientX, e.clientY);
-  }, [onContextMenu]);
-
-  const handleThemeNodeContextMenu = useCallback((nodeId, e) => {
-    e.preventDefault();
-    onContextMenu('theme', nodeId, e.clientX, e.clientY);
-  }, [onContextMenu]);
-
   // ── Edge Event Handlers ───────────────────────────────────────────────
 
   const handleEdgeMouseEnter = useCallback((edgeId) => {
@@ -342,15 +339,15 @@ export default function Canvas({
     const height = svgEl.clientHeight;
     if (width === 0 || height === 0) return;
 
-    // Build bounding box from all node positions
+    // Build bounding box from all node positions using per-node radius
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     graphState.nodes.forEach(node => {
-      const pos      = positions.current.get(node.id) ?? { x: node.x ?? 0, y: node.y ?? 0 };
-      const halfSize = node.type === 'theme' ? THEME_NODE_SIZE / 2 : CODE_NODE_SIZE / 2;
-      minX = Math.min(minX, pos.x - halfSize);
-      minY = Math.min(minY, pos.y - halfSize);
-      maxX = Math.max(maxX, pos.x + halfSize);
-      maxY = Math.max(maxY, pos.y + halfSize);
+      const pos    = positions.current.get(node.id) ?? { x: node.x ?? 0, y: node.y ?? 0 };
+      const radius = getNodeRadius(node);
+      minX = Math.min(minX, pos.x - radius);
+      minY = Math.min(minY, pos.y - radius);
+      maxX = Math.max(maxX, pos.x + radius);
+      maxY = Math.max(maxY, pos.y + radius);
     });
 
     if (!isFinite(minX)) return; // no nodes
@@ -381,6 +378,18 @@ export default function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Expose align reheat to parent on mount
+  useEffect(() => {
+    if (onAlignReady) {
+      onAlignReady(() => {
+        if (simulation.current) {
+          simulation.current.alpha(0.5).restart();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-fit once on open when nodes exist
   const hasAutoFitted = useRef(false);
   useEffect(() => {
@@ -389,6 +398,80 @@ export default function Canvas({
     const timer = setTimeout(() => fitToViewRef.current(), 500);
     return () => clearTimeout(timer);
   }, [graphState.nodes.length]); // re-check when node count changes (first load)
+
+  // ── Focus View Logic ──────────────────────────────────────────────────────
+
+  const focusedNodeIds = useMemo(() => {
+    if (!focusThemeId) return new Set();
+    const connectedCodeIds = graphState.edges
+      .filter(e => e.target === focusThemeId)
+      .map(e => e.source);
+    return new Set([focusThemeId, ...connectedCodeIds]);
+  }, [focusThemeId, graphState.edges]);
+
+  // Escape key handler
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape' && focusThemeId) {
+        onExitFocus?.();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [focusThemeId, onExitFocus]);
+
+  // Zoom-to-cluster effect
+  useEffect(() => {
+    if (!focusThemeId || !zoomBehaviorRef.current || !svgRef.current) return;
+
+    const focusedNodes = graphState.nodes.filter(n => focusedNodeIds.has(n.id));
+    if (focusedNodes.length === 0) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    focusedNodes.forEach(node => {
+      const pos      = positions.current.get(node.id) ?? { x: node.x ?? 0, y: node.y ?? 0 };
+      const halfSize = getNodeRadius(node);
+      minX = Math.min(minX, pos.x - halfSize);
+      minY = Math.min(minY, pos.y - halfSize);
+      maxX = Math.max(maxX, pos.x + halfSize);
+      maxY = Math.max(maxY, pos.y + halfSize);
+    });
+
+    const PADDING = 80;
+    const svgEl = svgRef.current;
+    const W = svgEl.clientWidth  || 800;
+    const H = svgEl.clientHeight || 600;
+    const contentW = maxX - minX + 2 * PADDING;
+    const contentH = maxY - minY + 2 * PADDING;
+    const k = Math.min(W / contentW, H / contentH, MAX_ZOOM);
+    const tx = W / 2 - k * ((minX + maxX) / 2);
+    const ty = H / 2 - k * ((minY + maxY) / 2);
+
+    d3.select(svgEl)
+      .transition()
+      .duration(600)
+      .ease(d3.easeCubicInOut)
+      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+  }, [focusThemeId, focusedNodeIds, graphState.nodes]);
+
+  // ── Search Logic ──────────────────────────────────────────────────────────
+
+  const searchActive = searchQuery.trim().length > 0;
+
+  const matchedNodeIds = useMemo(() => {
+    if (!searchActive) return new Set();
+    const lowerQuery = searchQuery.toLowerCase().trim();
+    return new Set(
+      graphState.nodes
+        .filter(n => {
+          const typeMatch =
+            (n.type === 'theme' && searchFilters.themes) ||
+            (n.type === 'code'  && searchFilters.codes);
+          return typeMatch && (n.label || '').toLowerCase().includes(lowerQuery);
+        })
+        .map(n => n.id)
+    );
+  }, [graphState.nodes, searchQuery, searchFilters, searchActive]);
 
   // ── Edge List (Memoized) ──────────────────────────────────────────────
 
@@ -425,13 +508,14 @@ export default function Canvas({
 
   return (
     <div
+      id="canvas-export-target"
       className="canvas-container"
       style={{
         overflow: 'hidden',
         position: 'relative',
         width: '100%',
         height: '100%',
-        backgroundColor: '#0f172a',
+        backgroundColor: 'var(--bg-canvas)',
       }}
       onMouseMove={handleCanvasMouseMove}
       onMouseLeave={handleCanvasMouseLeave}
@@ -520,62 +604,93 @@ export default function Canvas({
           transition: 'none',
         }}
       >
-        {/* Code nodes */}
-        {(graphState.nodes || [])
-          .filter(n => n.type === 'code')
-          .map(node => {
-            const pos = getNodePos(node.id);
-            const isConnecting =
-              canvasState.connectingFrom?.nodeId === node.id;
-            const isSelected =
-              canvasState.hoveredNodeId === node.id && connectMode;
+        {/* All nodes rendered as GraphNode */}
+        {(graphState.nodes || []).map((node) => {
+          const pos = getNodePos(node.id);
+          const isConnecting = canvasState.connectingFrom?.nodeId === node.id;
+          const isSelected = canvasState.hoveredNodeId === node.id && connectMode;
 
-            return (
-              <CodeNode
-                key={node.id}
-                node={node}
-                position={pos}
-                isSelected={isSelected}
-                isConnecting={isConnecting}
-                connectMode={connectMode}
-                onMouseEnter={() => handleCodeNodeMouseEnter(node.id)}
-                onMouseLeave={() => handleCodeNodeMouseLeave()}
-                onClick={() => handleCodeNodeClick(node.id)}
-                onContextMenu={(e) => handleCodeNodeContextMenu(node.id, e)}
-                onPointerDown={(e) => handleNodePointerDown(node.id, e)}
-                onPointerMove={(e) => handleNodePointerMove(node.id, e)}
-                onPointerUp={(e) => handleNodePointerUp(node.id, e)}
-              />
-            );
-          })}
+          // Route clicks based on node type (code → source, theme → target in connect mode)
+          const handleClick = () => {
+            if (node.type === 'code') {
+              handleCodeNodeClick(node.id);
+            } else {
+              handleThemeNodeClick(node.id);
+            }
+          };
 
-        {/* Theme nodes */}
-        {(graphState.nodes || [])
-          .filter(n => n.type === 'theme')
-          .map(node => {
-            const pos = getNodePos(node.id);
-            const isConnecting = canvasState.connectingFrom?.nodeId === node.id;
-            const isSelected = canvasState.hoveredNodeId === node.id && connectMode;
+          // Route context menu based on node type
+          const handleContextMenu = (e) => {
+            e.preventDefault();
+            onContextMenu(node.type, node.id, e.clientX, e.clientY);
+          };
 
-            return (
-              <ThemeNode
-                key={node.id}
-                nodeId={node.id}
-                node={node}
-                position={pos}
-                isSelected={isSelected}
-                isConnecting={isConnecting}
-                onClick={() => handleThemeNodeClick(node.id)}
-                onContextMenu={(e) => handleThemeNodeContextMenu(node.id, e)}
-                onMouseEnter={() => handleThemeNodeMouseEnter(node.id)}
-                onMouseLeave={() => handleThemeNodeMouseLeave()}
-                onPointerDown={(e) => handleNodePointerDown(node.id, e)}
-                onPointerMove={(e) => handleNodePointerMove(node.id, e)}
-                onPointerUp={(e) => handleNodePointerUp(node.id, e)}
-              />
-            );
-          })}
+          // Route mouse events based on node type
+          const handleMouseEnter = () => {
+            if (node.type === 'code') {
+              handleCodeNodeMouseEnter(node.id);
+            } else {
+              handleThemeNodeMouseEnter(node.id);
+            }
+          };
+
+          const handleMouseLeave = () => {
+            if (node.type === 'code') {
+              handleCodeNodeMouseLeave();
+            } else {
+              handleThemeNodeMouseLeave();
+            }
+          };
+
+          return (
+            <GraphNode
+              key={node.id}
+              node={node}
+              position={pos}
+              isSelected={isSelected}
+              isConnecting={isConnecting}
+              connectMode={connectMode}
+              focusThemeId={focusThemeId}
+              focusedNodeIds={focusedNodeIds}
+              searchActive={searchActive}
+              isSearchMatch={matchedNodeIds.has(node.id)}
+              onClick={handleClick}
+              onContextMenu={handleContextMenu}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              onPointerDown={(e) => handleNodePointerDown(node.id, e)}
+              onPointerMove={(e) => handleNodePointerMove(node.id, e)}
+              onPointerUp={(e) => handleNodePointerUp(node.id, e)}
+            />
+          );
+        })}
       </div>
+
+      {/* Exit Focus pill */}
+      {focusThemeId && (
+        <button
+          onClick={onExitFocus}
+          aria-label="Exit focus view"
+          style={{
+            position:        'absolute',
+            bottom:          24,
+            left:            '50%',
+            transform:       'translateX(-50%)',
+            zIndex:          40,
+            backgroundColor: '#0f0d0a',
+            color:           'white',
+            border:          '2px solid white',
+            boxShadow:       '4px 4px 0 #dc2626',
+            padding:         '8px 20px',
+            fontWeight:      700,
+            fontSize:        16,
+            cursor:          'pointer',
+            borderRadius:    4,
+          }}
+        >
+          ✕ Exit Focus
+        </button>
+      )}
 
       {/* Quote Tooltip */}
       <QuoteTooltip
