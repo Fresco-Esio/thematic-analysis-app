@@ -4,54 +4,96 @@ Interactive visual workspace for **Braun & Clarke Reflexive Thematic Analysis** 
 
 This app helps qualitative researchers move from coded data excerpts to a clear thematic map by combining:
 
-- draggable code and theme nodes
+- draggable code and theme nodes on a physics-enabled canvas
 - visual links between codes and themes
-- import from spreadsheet or CSV data
+- import from CSV or spreadsheet data
+- search, focus, and alignment tools for navigating large maps
 - export of the final map to PNG and PDF
 
-> **Research context:** This tool is designed specifically to support the six-phase Braun & Clarke Reflexive Thematic Analysis process (Braun & Clarke, 2006; 2019). It assists with Phases 3–5: generating initial codes, constructing themes, and producing a thematic map for review. It is not a diagnostic, clinical, or therapeutic instrument.
+> **Research context:** This tool supports the six-phase Braun & Clarke Reflexive Thematic Analysis process (Braun & Clarke, 2006; 2019+). It assists with Phases 3–5: generating initial codes, constructing themes, and producing a thematic map for review. It is not a diagnostic, clinical, or therapeutic instrument.
 
-The project is designed to support analysis of qualitative data with thematic mapping for visualization of reflexive thematic analysis.
+---
 
 ## Why This Exists
 
 Most thematic analysis work starts in tables and ends in static diagrams. This app bridges both stages:
 
 - Start from coded rows in CSV/XLSX
-- Automatically generate code and theme nodes
-- Reorganize and connect nodes on a physics-enabled canvas
-- Export publication-friendly snapshots of your map
+- Automatically generate code and theme nodes with edges
+- Reorganize and refine clusters on a live physics canvas
+- Export publication-friendly snapshots of your thematic map
+
+---
 
 ## Core Features
 
-- Graph canvas with pan, zoom, drag, and force-based layout controls
-- Two node types:
-	- Theme nodes (named categories with color)
-	- Code nodes (label, quote, source, optional primary theme)
-- Connect mode for creating or removing relationships
-- Right-click context menus for edit and delete actions
-- Modal editors for code/theme content
-- Import pipeline for CSV/XLSX coded excerpts
-- Built-in spreadsheet template generator for import-ready data
-- Local persistence using browser localStorage
-- Export to PNG and PDF via canvas capture
+### Canvas & Navigation
+- Pan, zoom, drag, and force-based physics layout
+- **⊞ Fit View** — reframes all nodes into the viewport
+- **⊹ Align** — radial layout: themes in an outer ring, codes clustered around their theme
+- **⊙ Focus View** — dims all nodes outside a chosen theme cluster and zooms the camera to it; Escape to exit
+
+### Nodes
+- **Theme nodes** — circular, colored, 160 px; represent thematic categories
+- **Code nodes** — circular, white with colored accent, 130 px; hold a label, raw quote, and source reference
+- Hover a code node to see its quote in a floating tooltip
+- Right-click any node for context menu: rename/edit, focus (themes), delete
+
+### Search
+- Expandable search bar in the toolbar
+- Filter by Themes, Codes, or both
+- Unmatched nodes dim to 25% opacity; matched nodes highlight with a red shadow
+
+### Connections
+- **Connect mode** — click a code node then a theme node to create a link; the code adopts the theme's color and `primaryThemeId`
+- Edges rendered as SVG lines with arrowheads
+
+### Import
+- Accepts `.csv`, `.xlsx`, `.xls`
+- Two-step wizard: upload → preview → confirm
+- Flexible header matching (see Import Data Format below)
+- Multi-sheet Excel files supported; active sheet auto-detected
+
+### Export
+- **PNG** — captures the canvas at 2× scale
+- **PDF** — same capture with an app name + date footer
+
+### Persistence
+- Graph state auto-saved to `localStorage` on every change
+- Physics parameters saved separately
+- Restored synchronously on page load (no flash of empty canvas)
+
+### Accessibility
+- Full keyboard navigation: Tab to focus nodes, Enter/Space to activate, Escape to close modals
+- ARIA roles: `dialog`, `menu`, `menuitem`, `aria-pressed`, `aria-live` polite region for search match count
+- Visible focus rings (`:focus-visible`, 3 px red outline)
+- Screen-reader live region announces search result counts
+
+---
 
 ## Tech Stack
 
-- React 19
-- Create React App (react-scripts)
-- Tailwind CSS
-- D3 (force simulation)
-- Framer Motion (interaction/animation)
-- XLSX + Papa Parse (file import)
-- html2canvas + jsPDF (export)
+| Layer | Technology |
+|---|---|
+| UI | React 19, Create React App |
+| Styling | Tailwind CSS 3 + inline styles for dynamic values |
+| Design | Neo-Brutalist — Bricolage Grotesque font, cream canvas `#f0ebe3`, near-black `#0f0d0a`, red accent `#dc2626` |
+| State | `useReducer` + React Context |
+| Graph layout | D3 v7 force simulation |
+| Animation | Framer Motion 12 |
+| File import | XLSX + PapaParse |
+| Export | html2canvas + jsPDF |
+| Unit tests | Jest + @testing-library/react |
+| E2E tests | Playwright (Chromium) |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ recommended
-- npm 9+ recommended
+- Node.js 18+
+- npm 9+
 
 ### Install
 
@@ -67,155 +109,179 @@ npm start
 
 Then open http://localhost:3000
 
+---
+
 ## Quick Start (2 Minutes)
 
-1. Start the app with npm start.
-2. Click Import in the top toolbar.
-3. Select the sample file at docs/samples/thematic-import-sample.csv.
-4. Confirm import to generate code and theme nodes.
-5. Drag nodes to organize clusters.
-6. Toggle Connect to map code nodes to themes.
-7. Click Fit View and export to PNG or PDF.
+1. `npm start` — open the app in your browser.
+2. Click **⬆ Import** in the top toolbar.
+3. Select `docs/samples/thematic-import-sample.csv`.
+4. Review the preview and click **Confirm Import**.
+5. Click **⊹ Align** to arrange nodes into theme clusters.
+6. Toggle **↔ Connect** to draw additional code→theme links.
+7. Use **⊙ Focus View** (right-click a theme) to zoom into a cluster.
+8. Click **⊞ Fit View** then **↓ PNG** or **↓ PDF** to export.
 
-Suggested screenshot captures for documentation updates:
-
-- Import modal open with sample selected
-- Canvas after import with auto-generated themes
-- Final map before export
+---
 
 ## Available Scripts
 
 ```bash
-npm start
+npm start               # dev server on http://localhost:3000
+npm test                # Jest unit tests (4 tests, 2 suites)
+npm run build           # production bundle → build/
+npm run test:e2e        # Playwright E2E (13 tests, Chromium headless)
+npx playwright test --reporter=list   # verbose E2E output
 ```
 
-Runs the app in development mode.
-
-```bash
-npm test
-```
-
-Runs the test watcher (Jest + Testing Library).
-
-```bash
-npm run build
-```
-
-Builds an optimized production bundle into the build folder.
-
-```bash
-npm run eject
-```
-
-Ejects from CRA (one-way operation).
+---
 
 ## Import Data Format
 
-The importer accepts .csv, .xlsx, and .xls files.
+The importer accepts `.csv`, `.xlsx`, and `.xls` files (multi-sheet Excel supported).
 
 Expected logical columns (header matching is flexible):
 
-- Source / Participant
-- Quoted Text
-- Code (Comment)
-- Preliminary Theme
+| Logical Field | Accepted Header Variants |
+|---|---|
+| Code (required) | `Code`, `Code (Comment)` |
+| Source | `Source`, `Participant`, `Interview` |
+| Quote | `Quoted Text`, `Quote`, `Excerpt` |
+| Theme | `Preliminary Theme`, `Theme`, `Category` |
 
-Common header variants are also supported (for example: Source, Quote, Code, Theme).
+Rows without a code value are skipped. A sample file is included:
 
-A sample import file is included in this repository:
+```
+docs/samples/thematic-import-sample.csv
+```
 
-- docs/samples/thematic-import-sample.csv
-
-### Import Behavior
+### Import Behaviour
 
 - One code node is created per valid row
-- Rows without a code value are skipped
-- Theme nodes are auto-created from unique theme labels
-- Existing matching theme names are reused
-- Code nodes without a theme remain unassigned (gray)
+- Theme nodes are auto-created from unique theme label values
+- Existing matching theme names are reused (no duplicates)
+- Codes without a theme arrive as unassigned (gray)
 
-## Export Behavior
+---
 
-- PNG export captures the current canvas state
-- PDF export captures the same view and adds a footer with app name and date
+## Export Behaviour
+
+- **PNG** — captures `#canvas-export-target` at 2× scale with dark background
+- **PDF** — same capture, adds a footer with app name and export date
+
+Use **Fit View** immediately before exporting for the cleanest output.
+
+---
 
 ## Project Structure
 
-```text
-src/
-	components/
-		modals/
-		nodes/
-	context/
-		GraphContext.js        # global graph state + persistence
-	utils/
-		importUtils.js         # CSV/XLSX parsing and graph generation
-		exportUtils.js         # PNG/PDF export helpers
-		forceSimulation.js     # force layout configuration
-	App.js                   # root composition and app-level UI state
 ```
+src/
+  App.js                        Root composition; all modal/panel open state
+  context/
+    GraphContext.js             Global reducer + localStorage (lazy initializer)
+  components/
+    Canvas.js                   D3 simulation, SVG edges, React node layer, pan/zoom
+    Toolbar.js                  Toolbar buttons + expandable search bar
+    PhysicsPanel.js             Collapsible sidebar with D3 force sliders
+    ContextMenu.js              Right-click menu (auto-dismiss, viewport-aware)
+    QuoteTooltip.js             Floating tooltip on code node hover
+    nodes/
+      GraphNode.js              Unified node component (theme + code variants)
+    modals/
+      ImportModal.js            Two-step import wizard (upload → preview → confirm)
+      CodeEditModal.js          Edit code label, quote, source
+      ThemeEditModal.js         Edit theme name + color; cascades color to codes
+  utils/
+    importUtils.js              parseFile(), buildGraphFromRows(), generateTemplate()
+    exportUtils.js              exportToPng(), exportToPdf()
+    forceSimulation.js          createSimulation() factory; chainable alpha()/restart()
+    nodeUtils.js                Node sizing, color helpers
+    motionConfig.js             Shared Framer Motion variants
+e2e/
+  app.spec.js                   13 Playwright E2E tests
+docs/
+  samples/                      Sample import CSV
+  plans/                        Implementation planning notes
+```
+
+---
 
 ## State and Persistence
 
-Graph state is managed with a reducer in GraphContext and persisted to localStorage so users can continue where they left off in the same browser.
+Graph state is managed via a reducer in `GraphContext` and persisted to `localStorage` synchronously on every change.
 
-Storage key:
+```
+localStorage keys:
+  thematic_analysis_graph_v1    — full graph state (nodes + edges)
+  thematic_analysis_physics_v1  — physics simulation parameters
+```
 
-- thematic_analysis_graph_v1
+The reducer uses a **lazy initializer** (third argument to `useReducer`) to restore state before first render — no effect-based restore, no flash of empty canvas.
+
+---
 
 ## Usage Tips
 
-- Use Add Theme and Add Code for quick manual mapping
-- Use Import when starting from coded transcript data
-- Use Connect mode to assign codes to themes visually
-- Open Physics to refine cluster spacing and readability
-- Use Fit View before exporting for cleaner output
+- **Starting fresh?** Use **Add Theme** and **Add Code** for quick manual mapping.
+- **Starting from data?** Use **Import** with your coded transcript spreadsheet.
+- **Messy layout?** Click **⊹ Align** to snap nodes into clean theme clusters.
+- **Large map?** Right-click a theme and choose **⊙ Focus View** to isolate that cluster.
+- **Searching?** Click **⌕ Search**, type a query, and toggle Themes/Codes filters.
+- **Physics tweaks?** Open **⚙ Physics** to adjust link distance, charge, and collision radius.
+- **Before exporting?** Click **⊞ Fit View** to ensure the full map is in frame.
+
+---
 
 ## Troubleshooting
 
-### Import parses but creates fewer nodes than expected
-
-- Check that the Code or Code (Comment) column has non-empty values.
+### Import creates fewer nodes than expected
+- Check that the `Code` / `Code (Comment)` column has non-empty values.
 - Rows without a code label are skipped by design.
-- Confirm your header names map to Source, Quoted Text, Code, and Theme fields.
+- Confirm header names map to the expected fields (see Import Data Format above).
 
 ### Imported codes are all gray
-
-- Gray means unassigned.
-- Verify Preliminary Theme values are present and non-empty.
-- In Connect mode, click a code first, then a theme to assign it.
+- Gray means unassigned — no `Preliminary Theme` value was found.
+- Verify theme column values are present and non-empty in your source file.
+- Alternatively, use Connect mode to assign codes to themes manually.
 
 ### Canvas appears crowded or overlapping
+- Click **⊹ Align** to apply the radial layout instantly.
+- Open **⚙ Physics** and increase collision radius.
+- Click **⊞ Fit View** to reframe all nodes.
 
-- Open Physics and increase collision radius.
-- Use Fit View to reframe all nodes on screen.
-- Drag key theme nodes apart first, then let simulation settle.
-
-### Export output is clipped or not centered
-
-- Use Fit View immediately before exporting.
-- Keep the map inside the visible viewport before capture.
-- Re-export after zoom/pan adjustments.
+### Export output is clipped
+- Use **⊞ Fit View** immediately before exporting.
+- Avoid zooming in too far before capture.
 
 ### My previous session is still loaded
+- The app persists graph state in browser `localStorage` across page loads.
+- Click **✕ Clear** in the toolbar to reset the canvas.
 
-- The app persists graph state in browser localStorage.
-- Use Clear from the toolbar to reset the canvas.
+---
 
 ## Documentation
 
-Planning and implementation notes are stored in:
+Planning notes and design references:
 
-- docs/plans/
+```
+docs/plans/2026-04-16-ui-redesign.md    UI redesign task plan
+docs/design-demos/aesthetics-demo.html  Neo-Brutalist design reference
+CLAUDE.md                               Project conventions for AI-assisted dev
+.github/copilot-instructions.md         Copilot/IDE assistant guidelines
+```
+
+---
 
 ## Contributing
 
-1. Create a feature branch from main
+1. Create a feature branch from `master`
 2. Make focused, testable changes
-3. Run npm test and npm run build locally
-4. Open a pull request with a clear description of behavior changes
+3. Run `npm test` and `npm run test:e2e` locally before pushing
+4. Open a pull request with a clear description of behaviour changes
+
+---
 
 ## License
 
-No license file is currently included in this repository.
-If you plan to distribute this project, add a LICENSE file with your intended terms.
+No license file is currently included. If you plan to distribute this project, add a `LICENSE` file with your intended terms.
