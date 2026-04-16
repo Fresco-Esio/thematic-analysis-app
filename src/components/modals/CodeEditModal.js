@@ -31,10 +31,11 @@ export default function CodeEditModal({ nodeId, onClose }) {
 
   // Escape key closes modal
   useEffect(() => {
+    if (!node) return;
     function onKey(e) { if (e.key === 'Escape') onClose(); }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [node, onClose]);
 
   if (!node) return null;
 

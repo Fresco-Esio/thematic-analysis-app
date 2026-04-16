@@ -78,7 +78,7 @@ export default function Toolbar({
 
       <div className="w-px h-6 bg-white/20 mx-1" />
 
-      <TbBtn onClick={onToggleConnect} active={connectMode}>
+      <TbBtn onClick={onToggleConnect} active={connectMode} aria-pressed={connectMode}>
         {connectMode ? '✕ Cancel Connect' : '↔ Connect'}
       </TbBtn>
       <TbBtn onClick={onFitView}>⊞ Fit View</TbBtn>
