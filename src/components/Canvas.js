@@ -514,7 +514,7 @@ export default function Canvas({
         }}
       >
         {/* All nodes rendered as GraphNode */}
-        {(graphState.nodes || []).map((node, i) => {
+        {(graphState.nodes || []).map((node) => {
           const pos = getNodePos(node.id);
           const isConnecting = canvasState.connectingFrom?.nodeId === node.id;
           const isSelected = canvasState.hoveredNodeId === node.id && connectMode;
