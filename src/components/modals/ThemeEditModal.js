@@ -28,6 +28,13 @@ export default function ThemeEditModal({ nodeId, onClose }) {
     if (node) { setLabel(node.label); setColor(node.color); }
   }, [nodeId]); // eslint-disable-line
 
+  // Escape key closes modal
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   if (!node) return null;
 
   const connectedCodeCount = edges.filter(e => e.target === nodeId).length;
@@ -58,9 +65,9 @@ export default function ThemeEditModal({ nodeId, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[520px] max-w-full shadow-[8px_8px_0_#0f0d0a]" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="theme-edit-modal-title" className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[520px] max-w-full shadow-[8px_8px_0_#0f0d0a]" onClick={e => e.stopPropagation()}>
 
-        <h2 className="text-xl font-bold text-[#0f0d0a] mb-1">Edit Theme</h2>
+        <h2 id="theme-edit-modal-title" className="text-xl font-bold text-[#0f0d0a] mb-1">Edit Theme</h2>
         <p className="text-base text-[#6b6560] mb-6">
           {connectedCodeCount} code{connectedCodeCount !== 1 ? 's' : ''} connected to this theme.
         </p>

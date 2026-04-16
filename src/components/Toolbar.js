@@ -53,6 +53,7 @@ export default function Toolbar({
   onSearchToggle,
   onSearchChange,
   onSearchFilterChange,
+  matchCount = 0,
 }) {
   const searchInputRef = useRef(null);
 
@@ -122,9 +123,12 @@ export default function Toolbar({
         <TbBtn onClick={onSearchToggle} active={searchOpen} aria-pressed={searchOpen}>
           {searchOpen ? '✕ Search' : '⌕ Search'}
         </TbBtn>
+        {searchOpen && (
+          <span className="sr-only" aria-live="polite">{matchCount} nodes matched</span>
+        )}
       </div>
 
-      <TbBtn onClick={onTogglePhysics} active={physicsOpen}>⚙ Physics</TbBtn>
+      <TbBtn onClick={onTogglePhysics} active={physicsOpen} aria-pressed={physicsOpen}>⚙ Physics</TbBtn>
       <TbBtn variant="danger" onClick={onClear}>✕ Clear</TbBtn>
     </div>
   );

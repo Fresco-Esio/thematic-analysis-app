@@ -45,6 +45,7 @@ export default function ContextMenu({ visible, x, y, items, onClose }) {
   return (
     <div
       ref={ref}
+      role="menu"
       style={{
         position: 'fixed', left, top, zIndex: 500,
         background: '#ffffff', border: '2px solid #0f0d0a',
@@ -56,6 +57,7 @@ export default function ContextMenu({ visible, x, y, items, onClose }) {
       {items.map((item, i) => (
         <button
           key={i}
+          role="menuitem"
           onClick={() => { item.action(); onClose(); }}
           style={{
             display: 'block', width: '100%',

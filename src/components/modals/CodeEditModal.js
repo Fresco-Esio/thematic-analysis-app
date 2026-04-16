@@ -29,6 +29,13 @@ export default function CodeEditModal({ nodeId, onClose }) {
     if (node) { setLabel(node.label); setQuote(node.quote ?? ''); }
   }, [nodeId]); // eslint-disable-line
 
+  // Escape key closes modal
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   if (!node) return null;
 
   // Find connected themes
@@ -49,9 +56,9 @@ export default function CodeEditModal({ nodeId, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[600px] max-w-full shadow-[8px_8px_0_#0f0d0a]" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="code-edit-modal-title" className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[600px] max-w-full shadow-[8px_8px_0_#0f0d0a]" onClick={e => e.stopPropagation()}>
 
-        <h2 className="text-xl font-bold text-[#0f0d0a] mb-1">Edit Code Node</h2>
+        <h2 id="code-edit-modal-title" className="text-xl font-bold text-[#0f0d0a] mb-1">Edit Code Node</h2>
         <p className="text-base text-[#6b6560] mb-6">Update the code label or quote text.</p>
 
         {/* Code label */}

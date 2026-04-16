@@ -17,7 +17,7 @@
  *   onClose   {fn}
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
 import { parseFile, buildGraphFromRows, generateTemplate, getSheetNames } from '../../utils/importUtils';
 
@@ -35,6 +35,13 @@ export default function ImportModal({ open, onClose }) {
   const [selectedSheet, setSelectedSheet] = useState('');
   const [pendingFile,   setPendingFile]   = useState(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -150,7 +157,7 @@ export default function ImportModal({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={handleClose}>
-      <div className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[700px] max-w-full shadow-[8px_8px_0_#0f0d0a] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="import-modal-title" className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[700px] max-w-full shadow-[8px_8px_0_#0f0d0a] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
 
         {/* Step indicator */}
         <div className="flex items-center gap-3 mb-6">
@@ -166,7 +173,7 @@ export default function ImportModal({ open, onClose }) {
         {/* ── STEP 1: Upload ─────────────────────────────────────────────────── */}
         {step === 1 && (
           <>
-            <h2 className="text-xl font-bold text-[#0f0d0a] mb-1">Import Data</h2>
+            <h2 id="import-modal-title" className="text-xl font-bold text-[#0f0d0a] mb-1">Import Data</h2>
             <p className="text-base text-[#6b6560] mb-6">Upload a .xlsx or .csv file. Expected columns: Source, Quoted Text, Code, Preliminary Theme.</p>
 
             {/* Drop zone */}
@@ -210,7 +217,7 @@ export default function ImportModal({ open, onClose }) {
         {/* ── STEP 2: Sheet Selector ────────────────────────────────────────────────── */}
         {step === 2 && sheetNames.length > 1 && !result && (
           <>
-            <h2 className="text-xl font-bold text-[#0f0d0a] mb-1">Select Sheet</h2>
+            <h2 id="import-modal-title" className="text-xl font-bold text-[#0f0d0a] mb-1">Select Sheet</h2>
             <p className="text-base text-[#6b6560] mb-6">This workbook has {sheetNames.length} sheets. Choose which one to import.</p>
 
             <div className="flex flex-col gap-2 mb-6">
@@ -250,7 +257,7 @@ export default function ImportModal({ open, onClose }) {
         {/* ── STEP 3: Preview ────────────────────────────────────────────────── */}
         {step === 3 && result && (
           <>
-            <h2 className="text-xl font-bold text-[#0f0d0a] mb-1">Preview Import</h2>
+            <h2 id="import-modal-title" className="text-xl font-bold text-[#0f0d0a] mb-1">Preview Import</h2>
             <p className="text-base text-[#6b6560] mb-1">
               From <span className="text-[#0f0d0a] font-bold">{fileName}</span>
             </p>

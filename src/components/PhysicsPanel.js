@@ -111,6 +111,7 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
             </h3>
             <button
               onClick={onClose}
+              aria-label="Close physics panel"
               title="Close panel (or click outside)"
               style={{
                 background: 'transparent', border: '2px solid #0f0d0a', cursor: 'pointer',
@@ -139,6 +140,7 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
                   type="range"
                   min={min} max={max} step={step}
                   value={raw}
+                  aria-label={label}
                   onChange={e => handleChange(key, Number(e.target.value), transform)}
                   style={{ width: '100%', accentColor: '#dc2626', cursor: 'pointer' }}
                 />
