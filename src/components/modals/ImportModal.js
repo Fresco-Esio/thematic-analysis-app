@@ -150,7 +150,7 @@ export default function ImportModal({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={handleClose}>
-      <div className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[700px] max-w-full shadow-[8px_8px_0_#0f0d0a]" onClick={e => e.stopPropagation()}>
+      <div className="bg-white border-2 border-[#0f0d0a] rounded-none p-7 w-[700px] max-w-full shadow-[8px_8px_0_#0f0d0a] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
 
         {/* Step indicator */}
         <div className="flex items-center gap-3 mb-6">
