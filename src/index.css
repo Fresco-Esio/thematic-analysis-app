@@ -10,6 +10,7 @@
   --text-muted:   #6b6560;
   --accent:       #dc2626;
   --border:       #0f0d0a;
+  /* Reference only — Tailwind JIT arbitrary values don't support var() in shadow-[...] */
   --shadow-hard:  6px 6px 0 #dc2626;
   --shadow-dark:  6px 6px 0 #0f0d0a;
 }

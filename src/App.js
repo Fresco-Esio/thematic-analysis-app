@@ -224,8 +224,8 @@ function AppInner() {
 
       {/* Status bar */}
       <div
-        className="flex gap-6 px-4 py-2 border-t border-slate-700 text-base font-bold"
-        style={{ backgroundColor: 'var(--bg-toolbar)', borderColor: '#dc2626', borderTopWidth: '2px', color: 'white' }}
+        className="flex gap-6 px-4 py-2 border-t-2 text-base font-bold"
+        style={{ backgroundColor: 'var(--bg-toolbar)', borderColor: '#dc2626', color: 'white' }}
       >
         <span>{themeCount} themes</span>
         <span>{codeCount} codes</span>
