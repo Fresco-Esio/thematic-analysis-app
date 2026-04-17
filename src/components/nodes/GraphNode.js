@@ -112,6 +112,7 @@ export default function GraphNode({
       whileTap={{ scale: 0.97 }}
       role="button"
       tabIndex={0}
+      data-node-type={node.type}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onMouseEnter={onMouseEnter}
