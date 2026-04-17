@@ -102,8 +102,8 @@ export default function GraphNode({
     },
   };
 
-  // Border: theme nodes get 3px solid black, code nodes 2px solid black
-  const borderWidth = isTheme ? 3 : 2;
+  // Border: theme/subtheme nodes get 3px solid black, code nodes 2px solid black
+  const borderWidth = (isTheme || isSubtheme) ? 3 : 2;
   const borderColor = '#0f0d0a';
 
   return (
@@ -136,7 +136,7 @@ export default function GraphNode({
         minHeight:       isSubtheme ? 48            : undefined,
         borderRadius:    isSubtheme ? 12            : '50%',
         backgroundColor: (isTheme || isSubtheme) ? color : '#ffffff',
-        border:          `${(isTheme || isSubtheme) ? 3 : 2}px solid ${borderColor}`,
+        border:          `${borderWidth}px solid ${borderColor}`,
         boxShadow:       getBoxShadow(),
         cursor:          connectMode ? 'crosshair' : 'grab',
         touchAction:     'none',

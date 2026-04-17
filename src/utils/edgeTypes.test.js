@@ -20,7 +20,7 @@ test('getEdgeDashArray returns correct pattern for known type', () => {
   expect(getEdgeDashArray('elaborates')).toBe('10,5');
 });
 
-test('getEdgeStrokeWidth returns 2 for null type, 3.5 for known type', () => {
-  expect(getEdgeStrokeWidth(null)).toBe(2);
-  expect(getEdgeStrokeWidth('supports')).toBe(3.5);
+test('getEdgeStrokeWidth returns 3 for null type, 5 for known type', () => {
+  expect(getEdgeStrokeWidth(null)).toBe(3);
+  expect(getEdgeStrokeWidth('supports')).toBe(5);
 });
