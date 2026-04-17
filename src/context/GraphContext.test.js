@@ -44,3 +44,40 @@ describe('graphReducer', () => {
     expect(nextState.edges).toEqual([]);
   });
 });
+
+describe('UPDATE_EDGE', () => {
+  const baseState = {
+    nodes: [],
+    edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+  };
+
+  test('updates relationType and label on the matching edge', () => {
+    const next = graphReducer(baseState, {
+      type: 'UPDATE_EDGE',
+      id: 'e1',
+      changes: { relationType: 'supports', label: 'supports' },
+    });
+    expect(next.edges[0]).toMatchObject({ id: 'e1', relationType: 'supports', label: 'supports' });
+  });
+
+  test('does not mutate other edges', () => {
+    const state = {
+      nodes: [],
+      edges: [
+        { id: 'e1', source: 'n1', target: 'n2' },
+        { id: 'e2', source: 'n2', target: 'n3' },
+      ],
+    };
+    const next = graphReducer(state, {
+      type: 'UPDATE_EDGE', id: 'e1', changes: { relationType: 'contradicts', label: 'contradicts' },
+    });
+    expect(next.edges[1]).toEqual({ id: 'e2', source: 'n2', target: 'n3' });
+  });
+
+  test('returns state unchanged for unknown id', () => {
+    const next = graphReducer(baseState, {
+      type: 'UPDATE_EDGE', id: 'nonexistent', changes: { relationType: 'supports' },
+    });
+    expect(next).toBe(baseState);
+  });
+});

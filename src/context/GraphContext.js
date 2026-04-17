@@ -18,6 +18,7 @@
  *   DELETE_NODE   { id }                      — also removes all edges touching that node
  *   ADD_EDGE      { edge: Edge }
  *   DELETE_EDGE   { id }
+ *   UPDATE_EDGE   { id, changes: Partial<Edge> }
  *   SET_GRAPH     { nodes, edges }            — full replace (used by localStorage restore)
  *   CLEAR         {}                          — wipe everything
  */
@@ -171,6 +172,17 @@ export function graphReducer(state, action) {
       }
 
       return { nodes: updatedNodes, edges: remainingEdges };
+    }
+
+    case 'UPDATE_EDGE': {
+      const exists = state.edges.some(e => e.id === action.id);
+      if (!exists) return state;
+      return {
+        ...state,
+        edges: state.edges.map(e =>
+          e.id === action.id ? { ...e, ...action.changes } : e
+        ),
+      };
     }
 
     case 'SET_GRAPH':
