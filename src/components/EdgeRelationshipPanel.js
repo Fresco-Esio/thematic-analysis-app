@@ -19,8 +19,8 @@ const PANEL_WIDTH  = 232;
 const PANEL_OFFSET = 16; // px from anchor point
 
 export default function EdgeRelationshipPanel({ edge, anchorX, anchorY, onClose, onApply }) {
-  const panelRef     = useRef(null);
-  const dragOffset   = useRef(null);
+  const panelRef = useRef(null);
+  const posRef   = useRef({ x: 0, y: 0 });
 
   const [selectedType, setSelectedType] = useState(null);
   const [customLabel,  setCustomLabel]  = useState('');
@@ -33,7 +33,7 @@ export default function EdgeRelationshipPanel({ edge, anchorX, anchorY, onClose,
     setCustomLabel(
       edge.relationType ? '' : (edge.label ?? '')
     );
-  }, [edge?.id]); // eslint-disable-line
+  }, [edge?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Position panel near anchor, clamped to viewport
   useEffect(() => {
@@ -41,8 +41,10 @@ export default function EdgeRelationshipPanel({ edge, anchorX, anchorY, onClose,
     const panelH = 260; // approx
     const x = Math.min(anchorX + PANEL_OFFSET, window.innerWidth  - PANEL_WIDTH - 8);
     const y = Math.min(anchorY + PANEL_OFFSET, window.innerHeight - panelH      - 8);
-    setPos({ x: Math.max(8, x), y: Math.max(8, y) });
-  }, [edge?.id, anchorX, anchorY]); // eslint-disable-line
+    const newPos = { x: Math.max(8, x), y: Math.max(8, y) };
+    setPos(newPos);
+    posRef.current = newPos;
+  }, [edge?.id, anchorX, anchorY]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dismiss on Escape
   useEffect(() => {
@@ -65,13 +67,17 @@ export default function EdgeRelationshipPanel({ edge, anchorX, anchorY, onClose,
   // ── Drag ──────────────────────────────────────────────────────────────────
   const handleGripMouseDown = useCallback((e) => {
     e.preventDefault();
-    dragOffset.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
+    const startX = posRef.current.x;
+    const startY = posRef.current.y;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
 
     function onMove(me) {
-      setPos({
-        x: Math.max(0, me.clientX - dragOffset.current.dx),
-        y: Math.max(0, me.clientY - dragOffset.current.dy),
-      });
+      const newX = Math.min(Math.max(0, me.clientX - dx), window.innerWidth  - PANEL_WIDTH - 8);
+      const newY = Math.min(Math.max(0, me.clientY - dy), window.innerHeight - 260        - 8);
+      const newPos = { x: newX, y: newY };
+      setPos(newPos);
+      posRef.current = newPos;
     }
     function onUp() {
       window.removeEventListener('mousemove', onMove);
@@ -79,7 +85,7 @@ export default function EdgeRelationshipPanel({ edge, anchorX, anchorY, onClose,
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup',   onUp);
-  }, [pos]);
+  }, []); // stable — no pos in deps
 
   // ── Selection logic ───────────────────────────────────────────────────────
   function handlePresetClick(typeKey) {
