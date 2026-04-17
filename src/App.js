@@ -37,6 +37,7 @@ function AppInner() {
   const canvasRef = useRef(null);
   const fitViewFn = useRef(null);
   const alignTriggerRef = useRef(null);
+  const zoomByFn = useRef(null);
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [connectMode,   setConnectMode]   = useState(false);
@@ -198,6 +199,8 @@ function AppInner() {
         onAddCode={handleAddCode}
         onToggleConnect={() => setConnectMode(m => !m)}
         onFitView={() => fitViewFn.current?.()}
+        onZoomIn={() => zoomByFn.current?.(1.4)}
+        onZoomOut={() => zoomByFn.current?.(1 / 1.4)}
         onExportPng={handleExportPng}
         onExportPdf={handleExportPdf}
         onTogglePhysics={() => setPhysicsOpen(o => !o)}
@@ -218,6 +221,7 @@ function AppInner() {
           onContextMenu={handleContextMenu}
           onFitReady={(fn) => { fitViewFn.current = fn; }}
           onAlignReady={(fn) => { alignTriggerRef.current = fn; }}
+          onZoomReady={(fn) => { zoomByFn.current = fn; }}
           searchQuery={searchQuery}
           searchFilters={searchFilters}
           focusThemeId={focusThemeId}

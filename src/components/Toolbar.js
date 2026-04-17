@@ -42,6 +42,8 @@ export default function Toolbar({
   onAddCode,
   onToggleConnect,
   onFitView,
+  onZoomIn,
+  onZoomOut,
   onExportPng,
   onExportPdf,
   onTogglePhysics,
@@ -81,6 +83,8 @@ export default function Toolbar({
       <TbBtn onClick={onToggleConnect} active={connectMode} aria-pressed={connectMode}>
         {connectMode ? '✕ Cancel Connect' : '↔ Connect'}
       </TbBtn>
+      <TbBtn onClick={onZoomOut} aria-label="Zoom out">−</TbBtn>
+      <TbBtn onClick={onZoomIn} aria-label="Zoom in">＋</TbBtn>
       <TbBtn onClick={onFitView}>⊞ Fit View</TbBtn>
       <TbBtn onClick={onAlign}>⊹ Align</TbBtn>
 

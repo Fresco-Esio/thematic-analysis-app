@@ -148,6 +148,7 @@ export default function Canvas({
   onContextMenu,
   onFitReady,
   onAlignReady,
+  onZoomReady,
   searchQuery = '',
   searchFilters = { themes: true, codes: true },
   focusThemeId = null,
@@ -193,8 +194,8 @@ export default function Canvas({
             `translate(${event.transform.x}px, ${event.transform.y}px) scale(${event.transform.k})`;
         }
 
-        // Apply transform to SVG elements
-        svg.selectAll('g').attr('transform', event.transform);
+        // Apply transform to the edges group only (not nested <g> wrappers)
+        svg.select('#edges').attr('transform', event.transform);
       });
 
     zoomBehaviorRef.current = zoomBehavior;
@@ -379,6 +380,19 @@ export default function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Expose zoomBy to parent on mount
+  useEffect(() => {
+    if (onZoomReady) {
+      onZoomReady((factor) => {
+        if (!zoomBehaviorRef.current || !svgRef.current) return;
+        d3.select(svgRef.current)
+          .transition().duration(250)
+          .call(zoomBehaviorRef.current.scaleBy, factor);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Expose align reheat to parent on mount
   useEffect(() => {
     if (onAlignReady) {
@@ -543,7 +557,7 @@ export default function Canvas({
             const isActive = canvasState.activeEdgeId === edge.id;
             const strokeColor = edge.color || (targetNode.color || '#64748b');
             const dashArray = getEdgeDashArray(edge.relationType);
-            const strokeWidth = isActive ? 5 : getEdgeStrokeWidth(edge.relationType);
+            const strokeWidth = isActive ? 7 : getEdgeStrokeWidth(edge.relationType);
             const mx = (x1 + x2) / 2;
             const my = (y1 + y2) / 2;
             const hasLabel = !!edge.label;

@@ -21,7 +21,7 @@ export function getEdgeDashArray(relationType) {
   return EDGE_TYPES[relationType].dashArray;
 }
 
-/** Returns stroke width: 3.5px for typed edges, 2px for unlabeled. */
+/** Returns stroke width: 5px for typed edges, 3px for unlabeled. */
 export function getEdgeStrokeWidth(relationType) {
-  return relationType && EDGE_TYPES[relationType] ? 3.5 : 2;
+  return relationType && EDGE_TYPES[relationType] ? 5 : 3;
 }
