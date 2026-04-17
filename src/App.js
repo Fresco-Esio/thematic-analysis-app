@@ -28,6 +28,7 @@ import ImportModal  from './components/modals/ImportModal';
 import CodeEditModal  from './components/modals/CodeEditModal';
 import ThemeEditModal from './components/modals/ThemeEditModal';
 import ContextMenu  from './components/ContextMenu';
+import EdgeRelationshipPanel from './components/EdgeRelationshipPanel';
 
 // ── Inner app (needs access to GraphContext hooks) ────────────────────────────
 function AppInner() {
@@ -46,6 +47,8 @@ function AppInner() {
   const [importOpen,     setImportOpen]     = useState(false);
   const [codeEditId,     setCodeEditId]     = useState(null);
   const [themeEditId,    setThemeEditId]    = useState(null);
+  const [edgeEditId,      setEdgeEditId]      = useState(null);
+  const [edgePanelAnchor, setEdgePanelAnchor] = useState({ x: 0, y: 0 });
 
   // ── Focus view ──────────────────────────────────────────────────────────────
   const [focusThemeId, setFocusThemeId] = useState(null);
@@ -163,6 +166,7 @@ function AppInner() {
       ];
     } else if (type === 'edge') {
       items = [
+        { label: '✎ Edit Relationship', action: () => { setEdgeEditId(id); setEdgePanelAnchor({ x, y }); setCtxMenu(m => ({ ...m, visible: false })); } },
         { label: '✕ Remove Connection', action: () => dispatch({ type: 'DELETE_EDGE', id }), danger: true },
       ];
     }
@@ -170,6 +174,11 @@ function AppInner() {
     if (items.length > 0) {
       setCtxMenu({ visible: true, x, y, items });
     }
+  }
+
+  function handleEdgeRelationshipApply(relationType, label) {
+    if (!edgeEditId) return;
+    dispatch({ type: 'UPDATE_EDGE', id: edgeEditId, changes: { relationType, label } });
   }
 
   // ── Status bar counts ────────────────────────────────────────────────────────
@@ -236,6 +245,15 @@ function AppInner() {
       <ImportModal    open={importOpen}    onClose={() => setImportOpen(false)} />
       <CodeEditModal  nodeId={codeEditId}  onClose={() => setCodeEditId(null)} />
       <ThemeEditModal nodeId={themeEditId} onClose={() => setThemeEditId(null)} />
+
+      {/* Edge relationship panel */}
+      <EdgeRelationshipPanel
+        edge={edges.find(e => e.id === edgeEditId) ?? null}
+        anchorX={edgePanelAnchor.x}
+        anchorY={edgePanelAnchor.y}
+        onClose={() => setEdgeEditId(null)}
+        onApply={handleEdgeRelationshipApply}
+      />
 
       {/* Context menu */}
       <ContextMenu
