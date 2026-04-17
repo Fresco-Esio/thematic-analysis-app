@@ -183,7 +183,7 @@ function AppInner() {
         { label: '✕ Delete Theme', action: () => {
             const connectedCount = edges.filter(e => e.target === id).length;
             const msg = connectedCount > 0
-              ? `Delete theme? ${connectedCount} code node(s) will become unassigned.`
+              ? `Delete theme? ${connectedCount} connected node(s) will become unassigned.`
               : 'Delete this theme?';
             if (window.confirm(msg)) dispatch({ type: 'DELETE_NODE', id });
           }, danger: true },
@@ -191,7 +191,11 @@ function AppInner() {
     } else if (type === 'subtheme') {
       items = [
         { label: '✏ Rename Subtheme', action: () => setSubthemeEditId(id) },
-        { label: '✕ Delete Subtheme', action: () => dispatch({ type: 'DELETE_NODE', id }), danger: true },
+        { label: '✕ Delete Subtheme', action: () => {
+            const subthemeNode = nodes.find(n => n.id === id);
+            if (window.confirm(`Delete subtheme "${subthemeNode?.label ?? 'this subtheme'}"?`))
+              dispatch({ type: 'DELETE_NODE', id });
+          }, danger: true },
       ];
     } else if (type === 'edge') {
       items = [
