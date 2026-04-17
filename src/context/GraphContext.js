@@ -139,25 +139,25 @@ export function graphReducer(state, action) {
 
       const remainingEdges = state.edges.filter(e => e.id !== action.id);
 
-      // If this was the primary theme edge for the code node, promote the next one or revert to unassigned
-      const codeNode = state.nodes.find(n => n.id === edge.source);
+      // If this was the primary theme edge for the source node (code or subtheme), promote the next one or revert to unassigned
+      const sourceNode = state.nodes.find(n => n.id === edge.source);
       let updatedNodes = state.nodes;
 
-      if (codeNode && codeNode.primaryThemeId === edge.target) {
-        // Find next remaining edge from this code node
-        const nextEdge = remainingEdges.find(e => e.source === codeNode.id);
+      if (sourceNode && sourceNode.primaryThemeId === edge.target) {
+        // Find next remaining edge from this source node
+        const nextEdge = remainingEdges.find(e => e.source === sourceNode.id);
         if (nextEdge) {
           const nextTheme = state.nodes.find(n => n.id === nextEdge.target);
           if (nextTheme) {
             updatedNodes = state.nodes.map(n =>
-              n.id === codeNode.id
+              n.id === sourceNode.id
                 ? { ...n, primaryThemeId: nextTheme.id, color: nextTheme.color }
                 : n
             );
           } else {
             // nextEdge exists but target theme is gone — revert to unassigned
             updatedNodes = state.nodes.map(n =>
-              n.id === codeNode.id
+              n.id === sourceNode.id
                 ? { ...n, primaryThemeId: null, color: UNASSIGNED_COLOR }
                 : n
             );
@@ -165,7 +165,7 @@ export function graphReducer(state, action) {
         } else {
           // No more connections — revert to unassigned
           updatedNodes = state.nodes.map(n =>
-            n.id === codeNode.id
+            n.id === sourceNode.id
               ? { ...n, primaryThemeId: null, color: UNASSIGNED_COLOR }
               : n
           );
