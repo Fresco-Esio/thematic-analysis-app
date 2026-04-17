@@ -14,8 +14,10 @@
  */
 // Maximum diameters — prevents excessively large nodes for long labels.
 // Text wraps within the capped circle via wordBreak in GraphNode.js.
-const MAX_THEME_DIAMETER = 210;
-const MAX_CODE_DIAMETER  = 170;
+const MAX_THEME_DIAMETER  = 210;
+const MAX_CODE_DIAMETER   = 170;
+const MAX_SUBTHEME_WIDTH  = 220;
+const MIN_SUBTHEME_WIDTH  = 120;
 
 export function getNodeSize(node) {
   const charCount = (node.label || '').length;
@@ -26,6 +28,12 @@ export function getNodeSize(node) {
     const rawDiameter = Math.max(120, Math.round(90 + charCount * 3.2));
     const diameter = Math.min(rawDiameter, MAX_THEME_DIAMETER);
     return { diameter, fontSize };
+  } else if (node.type === 'subtheme') {
+    const charCount = (node.label || '').length;
+    const fontSize = Math.max(12, Math.min(18, 17 - Math.floor(charCount / 12)));
+    const width = Math.min(MAX_SUBTHEME_WIDTH, Math.max(MIN_SUBTHEME_WIDTH, Math.round(80 + charCount * 5)));
+    // Return width as both width and diameter — consumers that need diameter get a sensible fallback
+    return { width, fontSize, diameter: width };
   } else {
     // code node
     const fontSize = Math.max(12, Math.min(18, 17 - Math.floor(charCount / 12)));
