@@ -24,6 +24,7 @@ import { createSimulation } from '../utils/forceSimulation';
 import { useGraph, useGraphDispatch } from '../context/GraphContext';
 import GraphNode from './nodes/GraphNode';
 import { getNodeRadius } from '../utils/nodeUtils';
+import { getEdgeDashArray, getEdgeStrokeWidth } from '../utils/edgeTypes';
 import QuoteTooltip from './QuoteTooltip';
 import './Canvas.css';
 
@@ -541,25 +542,64 @@ export default function Canvas({
 
             const isActive = canvasState.activeEdgeId === edge.id;
             const strokeColor = edge.color || (targetNode.color || '#64748b');
+            const dashArray = getEdgeDashArray(edge.relationType);
+            const strokeWidth = isActive ? 5 : getEdgeStrokeWidth(edge.relationType);
+            const mx = (x1 + x2) / 2;
+            const my = (y1 + y2) / 2;
+            const hasLabel = !!edge.label;
+            const labelChars = (edge.label || '').length;
+            const labelWidth = labelChars * 6.5 + 8;
+            const labelHeight = 16;
 
             return (
-              <line
-                key={edge.id}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={strokeColor}
-                strokeWidth={isActive ? 4 : 2}
-                opacity={isActive ? 1 : 0.6}
-                style={{
-                  cursor: 'pointer',
-                  transition: 'stroke-width 150ms ease, opacity 150ms ease',
-                }}
-                onMouseEnter={() => handleEdgeMouseEnter(edge.id)}
-                onMouseLeave={() => handleEdgeMouseLeave()}
-                onClick={(e) => handleEdgeClick(edge.id, e)}
-              />
+              <g key={edge.id}>
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeDasharray={dashArray || undefined}
+                  opacity={isActive ? 1 : 0.6}
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'stroke-width 150ms ease, opacity 150ms ease',
+                  }}
+                  onMouseEnter={() => handleEdgeMouseEnter(edge.id)}
+                  onMouseLeave={() => handleEdgeMouseLeave()}
+                  onClick={(e) => handleEdgeClick(edge.id, e)}
+                />
+                {hasLabel && (
+                  <g style={{ pointerEvents: 'none' }}>
+                    <rect
+                      x={mx - labelWidth / 2}
+                      y={my - labelHeight / 2}
+                      width={labelWidth}
+                      height={labelHeight}
+                      fill="#f0ebe3"
+                      rx={0}
+                    />
+                    <text
+                      x={mx}
+                      y={my + 1}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={strokeColor}
+                      fontSize={10}
+                      fontWeight={700}
+                      fontFamily='"Bricolage Grotesque", sans-serif'
+                      style={{
+                        textDecoration: isActive ? 'underline' : 'none',
+                        textDecorationColor: '#dc2626',
+                      }}
+                    >
+                      {edge.label}
+                    </text>
+                  </g>
+                )}
+              </g>
             );
           })}
         </g>
