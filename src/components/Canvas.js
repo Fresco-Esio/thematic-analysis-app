@@ -418,11 +418,29 @@ export default function Canvas({
 
   const focusedNodeIds = useMemo(() => {
     if (!focusThemeId) return new Set();
-    const connectedCodeIds = graphState.edges
-      .filter(e => e.target === focusThemeId)
-      .map(e => e.source);
-    return new Set([focusThemeId, ...connectedCodeIds]);
-  }, [focusThemeId, graphState.edges]);
+
+    const edges = graphState.edges;
+    const nodes = graphState.nodes;
+
+    // Direct neighbours of the theme
+    const directNeighbours = edges
+      .filter(e => e.source === focusThemeId || e.target === focusThemeId)
+      .map(e => e.source === focusThemeId ? e.target : e.source);
+
+    // Subtheme neighbours → also include their code connections
+    const subthemeIds = directNeighbours.filter(id => {
+      const n = nodes.find(nd => nd.id === id);
+      return n?.type === 'subtheme';
+    });
+
+    const subthemeNeighbours = subthemeIds.flatMap(stId =>
+      edges
+        .filter(e => e.source === stId || e.target === stId)
+        .map(e => e.source === stId ? e.target : e.source)
+    );
+
+    return new Set([focusThemeId, ...directNeighbours, ...subthemeNeighbours]);
+  }, [focusThemeId, graphState.edges, graphState.nodes]);
 
   // Escape key handler
   useEffect(() => {
