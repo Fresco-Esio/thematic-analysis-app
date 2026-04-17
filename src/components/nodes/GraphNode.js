@@ -46,8 +46,9 @@ export default function GraphNode({
   onPointerUp,
 }) {
   const isTheme = node.type === 'theme';
-  const { diameter, fontSize } = getNodeSize(node);
-  const radius = diameter / 2;
+  const isSubtheme = node.type === 'subtheme';
+  const { diameter, fontSize, width: subthemeWidth } = getNodeSize(node);
+  const radius = isSubtheme ? null : diameter / 2;
   const color = node.color || (isTheme ? '#6366f1' : '#64748b');
 
   // Opacity: dim based on search state or focus state
@@ -70,6 +71,9 @@ export default function GraphNode({
     }
     if (isSelected) {
       return `0 0 0 3px #fff, 0 0 16px 4px ${color}`;
+    }
+    if (isSubtheme) {
+      return `6px 6px 0 ${color}88`;
     }
     if (isTheme) {
       // Planet: hard shadow in semi-transparent theme color
@@ -104,7 +108,7 @@ export default function GraphNode({
 
   return (
     <motion.div
-      className={isTheme ? 'graph-node graph-node--theme' : 'graph-node graph-node--code'}
+      className={isTheme ? 'graph-node graph-node--theme' : isSubtheme ? 'graph-node graph-node--subtheme' : 'graph-node graph-node--code'}
       initial="initial"
       animate={isConnecting ? 'connecting' : 'visible'}
       variants={variants}
@@ -121,28 +125,29 @@ export default function GraphNode({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      aria-label={`${node.label || 'Unnamed'} — ${isTheme ? 'theme' : 'code'} node`}
+      aria-label={`${node.label || 'Unnamed'} — ${isTheme ? 'theme' : isSubtheme ? 'subtheme' : 'code'} node`}
       aria-pressed={isSelected}
       style={{
         position:        'absolute',
-        left:            position ? position.x - radius : 0,
-        top:             position ? position.y - radius : 0,
-        width:           diameter,
-        height:          diameter,
-        borderRadius:    '50%',
-        backgroundColor: isTheme ? color : '#ffffff',
-        border:          `${borderWidth}px solid ${borderColor}`,
+        left:            position ? (isSubtheme ? position.x - subthemeWidth / 2 : position.x - radius) : 0,
+        top:             position ? (isSubtheme ? position.y - 24 : position.y - radius) : 0,
+        width:           isSubtheme ? subthemeWidth : diameter,
+        height:          isSubtheme ? 'auto'        : diameter,
+        minHeight:       isSubtheme ? 48            : undefined,
+        borderRadius:    isSubtheme ? 12            : '50%',
+        backgroundColor: (isTheme || isSubtheme) ? color : '#ffffff',
+        border:          `${(isTheme || isSubtheme) ? 3 : 2}px solid ${borderColor}`,
         boxShadow:       getBoxShadow(),
         cursor:          connectMode ? 'crosshair' : 'grab',
         touchAction:     'none',
         pointerEvents:   'auto',
         userSelect:      'none',
-        zIndex:          isSelected || isConnecting ? 20 : (isTheme ? 12 : 10),
+        zIndex:          isSelected || isConnecting ? 20 : (isTheme ? 12 : (isSubtheme ? 11 : 10)),
         display:         'flex',
         alignItems:      'center',
         justifyContent:  'center',
         padding:         0,
-        background:      isTheme ? color : '#ffffff', // override button default
+        background:      (isTheme || isSubtheme) ? color : '#ffffff', // override button default
         outline:         'none', // handled by focus-visible below
       }}
     >
@@ -150,16 +155,16 @@ export default function GraphNode({
       <span
         style={{
           textAlign:    'center',
-          padding:      isTheme ? '10px 18px' : '10px 14px',
-          color:        isTheme ? 'white' : '#0f0d0a',
+          padding:      isTheme ? '10px 18px' : (isSubtheme ? '10px 18px' : '10px 14px'),
+          color:        (isTheme || isSubtheme) ? 'white' : '#0f0d0a',
           fontSize:     fontSize,
-          fontWeight:   isTheme ? 700 : 600,
+          fontWeight:   (isTheme || isSubtheme) ? 700 : 600,
           lineHeight:   1.2,
           wordBreak:    'break-word',
           // No truncation — label always fully visible
         }}
       >
-        {node.label || (isTheme ? 'Untitled Theme' : 'Untitled Code')}
+        {node.label || (isTheme ? 'Untitled Theme' : isSubtheme ? 'Untitled Subtheme' : 'Untitled Code')}
       </span>
 
       {/* Theme indicator badge */}
