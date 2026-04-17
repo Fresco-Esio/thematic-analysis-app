@@ -1,8 +1,20 @@
+/**
+ * SubthemeEditModal.js
+ * ─────────────────────────────────────────────────────────────────────────
+ * Modal for editing a subtheme node. Allows:
+ *   - Renaming the subtheme label
+ *   - Deleting the subtheme
+ *
+ * PROPS:
+ *   nodeId    {string|null}  — null = closed
+ *   onClose   {fn}
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
 
 export default function SubthemeEditModal({ nodeId, onClose }) {
-  const { nodes } = useGraph();
+  const { nodes, edges } = useGraph();
   const dispatch  = useGraphDispatch();
   const node = nodes.find(n => n.id === nodeId) ?? null;
   const [label, setLabel] = useState('');
@@ -26,7 +38,11 @@ export default function SubthemeEditModal({ nodeId, onClose }) {
   }
 
   function handleDelete() {
-    if (window.confirm(`Delete subtheme "${node.label}"?`)) {
+    const connectedCount = edges.filter(e => e.source === nodeId || e.target === nodeId).length;
+    const msg = connectedCount > 0
+      ? `Delete subtheme "${node.label}"? ${connectedCount} connected node(s) will become unassigned.`
+      : `Delete subtheme "${node.label}"?`;
+    if (window.confirm(msg)) {
       dispatch({ type: 'DELETE_NODE', id: nodeId });
       onClose();
     }
@@ -35,7 +51,7 @@ export default function SubthemeEditModal({ nodeId, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="subtheme-edit-modal-title"
-        className="bg-white border-2 border-[#0f0d0a] p-7 w-[480px] max-w-full shadow-[8px_8px_0_#0f0d0a]"
+        className="bg-white rounded-none border-2 border-[#0f0d0a] p-7 w-[480px] max-w-full shadow-[8px_8px_0_#0f0d0a]"
         onClick={e => e.stopPropagation()}
       >
         <h2 id="subtheme-edit-modal-title" className="text-xl font-bold text-[#0f0d0a] mb-6">Edit Subtheme</h2>
