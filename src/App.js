@@ -27,6 +27,7 @@ import PhysicsPanel from './components/PhysicsPanel';
 import ImportModal  from './components/modals/ImportModal';
 import CodeEditModal  from './components/modals/CodeEditModal';
 import ThemeEditModal from './components/modals/ThemeEditModal';
+import SubthemeEditModal from './components/modals/SubthemeEditModal';
 import ContextMenu  from './components/ContextMenu';
 import EdgeRelationshipPanel from './components/EdgeRelationshipPanel';
 
@@ -48,6 +49,7 @@ function AppInner() {
   const [importOpen,     setImportOpen]     = useState(false);
   const [codeEditId,     setCodeEditId]     = useState(null);
   const [themeEditId,    setThemeEditId]    = useState(null);
+  const [subthemeEditId, setSubthemeEditId] = useState(null);
   const [edgeEditId,      setEdgeEditId]      = useState(null);
   const [edgePanelAnchor, setEdgePanelAnchor] = useState({ x: 0, y: 0 });
 
@@ -79,6 +81,15 @@ function AppInner() {
     dispatch({
       type: 'ADD_NODE',
       node: { id: makeId('code'), type: 'code', label: 'New Code', quote: '', source: '', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy },
+    });
+  }
+
+  function handleAddSubtheme() {
+    const cx = window.innerWidth  / 2 + (Math.random() - 0.5) * 200;
+    const cy = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+    dispatch({
+      type: 'ADD_NODE',
+      node: { id: makeId('subtheme'), type: 'subtheme', label: 'New Subtheme', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy },
     });
   }
 
@@ -185,6 +196,7 @@ function AppInner() {
   // ── Status bar counts ────────────────────────────────────────────────────────
   const codeCount      = nodes.filter(n => n.type === 'code').length;
   const themeCount     = nodes.filter(n => n.type === 'theme').length;
+  const subthemeCount  = nodes.filter(n => n.type === 'subtheme').length;
   const unassignedCount = nodes.filter(n => n.type === 'code' && !n.primaryThemeId).length;
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -197,6 +209,7 @@ function AppInner() {
         onImport={() => setImportOpen(true)}
         onAddTheme={handleAddTheme}
         onAddCode={handleAddCode}
+        onAddSubtheme={handleAddSubtheme}
         onToggleConnect={() => setConnectMode(m => !m)}
         onFitView={() => fitViewFn.current?.()}
         onZoomIn={() => zoomByFn.current?.(1.4)}
@@ -241,6 +254,7 @@ function AppInner() {
         style={{ backgroundColor: 'var(--bg-toolbar)', borderColor: '#dc2626', color: 'white' }}
       >
         <span>{themeCount} themes</span>
+        <span>{subthemeCount} subthemes</span>
         <span>{codeCount} codes</span>
         <span style={{ color: '#dc2626' }}>{unassignedCount} unassigned</span>
       </div>
@@ -249,6 +263,7 @@ function AppInner() {
       <ImportModal    open={importOpen}    onClose={() => setImportOpen(false)} />
       <CodeEditModal  nodeId={codeEditId}  onClose={() => setCodeEditId(null)} />
       <ThemeEditModal nodeId={themeEditId} onClose={() => setThemeEditId(null)} />
+      <SubthemeEditModal nodeId={subthemeEditId} onClose={() => setSubthemeEditId(null)} />
 
       {/* Edge relationship panel */}
       <EdgeRelationshipPanel

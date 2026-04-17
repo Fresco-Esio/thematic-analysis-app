@@ -9,6 +9,7 @@
  *   onImport        {fn}
  *   onAddTheme      {fn}
  *   onAddCode       {fn}
+ *   onAddSubtheme   {fn}
  *   onToggleConnect {fn}
  *   onExportPng     {fn}
  *   onExportPdf     {fn}
@@ -40,6 +41,7 @@ export default function Toolbar({
   onImport,
   onAddTheme,
   onAddCode,
+  onAddSubtheme,
   onToggleConnect,
   onFitView,
   onZoomIn,
@@ -77,6 +79,7 @@ export default function Toolbar({
       <TbBtn variant="primary" onClick={onImport}>⬆ Import</TbBtn>
       <TbBtn variant="primary" onClick={onAddTheme}>＋ Add Theme</TbBtn>
       <TbBtn variant="primary" onClick={onAddCode}>＋ Add Code</TbBtn>
+      <TbBtn variant="primary" onClick={onAddSubtheme}>＋ Add Subtheme</TbBtn>
 
       <div className="w-px h-6 bg-white/20 mx-1" />
 
