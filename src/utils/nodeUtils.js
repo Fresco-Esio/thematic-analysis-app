@@ -10,7 +10,7 @@
  * Minimum diameter: theme 120px, code 100px.
  *
  * @param {{ type: string, label: string }} node
- * @returns {{ diameter: number, fontSize: number }}
+ * @returns {{ diameter: number, fontSize: number, width?: number }}
  */
 // Maximum diameters — prevents excessively large nodes for long labels.
 // Text wraps within the capped circle via wordBreak in GraphNode.js.
@@ -29,7 +29,6 @@ export function getNodeSize(node) {
     const diameter = Math.min(rawDiameter, MAX_THEME_DIAMETER);
     return { diameter, fontSize };
   } else if (node.type === 'subtheme') {
-    const charCount = (node.label || '').length;
     const fontSize = Math.max(12, Math.min(18, 17 - Math.floor(charCount / 12)));
     const width = Math.min(MAX_SUBTHEME_WIDTH, Math.max(MIN_SUBTHEME_WIDTH, Math.round(80 + charCount * 5)));
     // Return width as both width and diameter — consumers that need diameter get a sensible fallback
@@ -46,6 +45,7 @@ export function getNodeSize(node) {
 /**
  * Convenience: returns the radius (half of diameter) for a node.
  * Used by Canvas.js for fitToView bounding box calculation.
+ * Note: for subtheme nodes, diameter === width, so this returns half-width (not a circle radius).
  */
 export function getNodeRadius(node) {
   return getNodeSize(node).diameter / 2;
