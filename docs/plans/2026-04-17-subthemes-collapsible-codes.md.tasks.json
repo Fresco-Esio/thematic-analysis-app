@@ -1,0 +1,19 @@
+{
+  "planPath": "docs/plans/2026-04-17-subthemes-collapsible-codes.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 1: Extend nodeUtils.js with subtheme sizing", "status": "pending"},
+    {"id": 1, "subject": "Task 2: Extend the reducer for subtheme nodes", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 3: Render subtheme nodes in GraphNode.js", "status": "pending", "blockedBy": [0]},
+    {"id": 3, "subject": "Task 4: Create SubthemeEditModal.js", "status": "pending"},
+    {"id": 4, "subject": "Task 5: Wire subtheme creation into App.js and Toolbar.js", "status": "pending", "blockedBy": [1, 2, 3]},
+    {"id": 5, "subject": "Task 6: Add subtheme context menu items in App.js", "status": "pending", "blockedBy": [4]},
+    {"id": 6, "subject": "Task 7: Update focus view for subtheme two-hop traversal", "status": "pending", "blockedBy": [4]},
+    {"id": 7, "subject": "Task 8: Update handleAlign for subthemes", "status": "pending", "blockedBy": [4]},
+    {"id": 8, "subject": "Task 9: Collapsible codes — state and context menu wiring", "status": "pending", "blockedBy": [5]},
+    {"id": 9, "subject": "Task 10: Implement collapse rendering in Canvas.js", "status": "pending", "blockedBy": [8]},
+    {"id": 10, "subject": "Task 11: Animate collapse/expand in GraphNode.js", "status": "pending", "blockedBy": [9]},
+    {"id": 11, "subject": "Task 12: Write E2E tests", "status": "pending", "blockedBy": [10]},
+    {"id": 12, "subject": "Task 13: Final pass — search filter and import pipeline", "status": "pending", "blockedBy": [11]}
+  ],
+  "lastUpdated": "2026-04-17T00:00:00Z"
+}
