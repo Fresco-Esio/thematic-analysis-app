@@ -167,6 +167,18 @@ function AppInner() {
     } else if (type === 'theme-edit' || type === 'theme') {
       items = [
         { label: '✏ Rename / Edit Theme', action: () => setThemeEditId(id) },
+        { label: '＋ Add Subtheme', action: () => {
+            const themeNode = nodes.find(n => n.id === id);
+            const subId = makeId('subtheme');
+            dispatch({ type: 'ADD_NODE', node: {
+              id: subId, type: 'subtheme', label: 'New Subtheme',
+              primaryThemeId: id, color: themeNode?.color ?? UNASSIGNED_COLOR,
+              x: x + 160, y: y + 80,
+            }});
+            dispatch({ type: 'ADD_EDGE', edge: { id: makeId('edge'), source: subId, target: id }});
+            setSubthemeEditId(subId);
+          }
+        },
         { label: '⊙ Focus View', action: () => setFocusThemeId(id) },
         { label: '✕ Delete Theme', action: () => {
             const connectedCount = edges.filter(e => e.target === id).length;
@@ -175,6 +187,11 @@ function AppInner() {
               : 'Delete this theme?';
             if (window.confirm(msg)) dispatch({ type: 'DELETE_NODE', id });
           }, danger: true },
+      ];
+    } else if (type === 'subtheme') {
+      items = [
+        { label: '✏ Rename Subtheme', action: () => setSubthemeEditId(id) },
+        { label: '✕ Delete Subtheme', action: () => dispatch({ type: 'DELETE_NODE', id }), danger: true },
       ];
     } else if (type === 'edge') {
       items = [
