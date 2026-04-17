@@ -8,8 +8,9 @@
  *   edges  — array of { id, source, target }
  *
  * NODE TYPES:
- *   "theme" — { id, type:"theme", label, color, x, y }
- *   "code"  — { id, type:"code",  label, quote, source, primaryThemeId, color, x, y }
+ *   "theme"    — { id, type:"theme",    label, color, x, y }
+ *   "code"     — { id, type:"code",     label, quote, source, primaryThemeId, color, x, y }
+ *   "subtheme" — { id, type:"subtheme", label, primaryThemeId, color, x, y }
  *
  * ACTIONS (dispatched via useGraphDispatch):
  *   ADD_NODES     { nodes: Node[] }           — bulk add (used by import)
@@ -95,7 +96,7 @@ export function graphReducer(state, action) {
         nodes: state.nodes
           .filter(n => n.id !== action.id)
           .map(n => {
-            if (isThemeNode && n.type === 'code' && n.primaryThemeId === action.id) {
+            if (isThemeNode && (n.type === 'code' || n.type === 'subtheme') && n.primaryThemeId === action.id) {
               return { ...n, primaryThemeId: null, color: UNASSIGNED_COLOR };
             }
             return n;
@@ -113,14 +114,14 @@ export function graphReducer(state, action) {
       );
       if (dup) return state;
 
-      // Update primaryThemeId on the code node if it doesn't have one yet
-      const codeNode = state.nodes.find(n => n.id === action.edge.source);
-      const themeNode = state.nodes.find(n => n.id === action.edge.target);
+      // Update primaryThemeId on the source node (code or subtheme) if it doesn't have one yet
+      const sourceNode = state.nodes.find(n => n.id === action.edge.source);
+      const themeNode  = state.nodes.find(n => n.id === action.edge.target);
       let updatedNodes = state.nodes;
 
-      if (codeNode && themeNode && !codeNode.primaryThemeId) {
+      if (sourceNode && themeNode && themeNode.type === 'theme' && !sourceNode.primaryThemeId) {
         updatedNodes = state.nodes.map(n =>
-          n.id === codeNode.id
+          n.id === sourceNode.id
             ? { ...n, primaryThemeId: themeNode.id, color: themeNode.color }
             : n
         );
