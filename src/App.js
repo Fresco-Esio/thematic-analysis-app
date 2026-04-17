@@ -166,7 +166,7 @@ function AppInner() {
       ];
     } else if (type === 'edge') {
       items = [
-        { label: '✎ Edit Relationship', action: () => { setEdgeEditId(id); setEdgePanelAnchor({ x, y }); setCtxMenu(m => ({ ...m, visible: false })); } },
+        { label: '✎ Edit Relationship', action: () => { setEdgeEditId(id); setEdgePanelAnchor({ x, y }); } },
         { label: '✕ Remove Connection', action: () => dispatch({ type: 'DELETE_EDGE', id }), danger: true },
       ];
     }
