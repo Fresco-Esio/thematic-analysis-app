@@ -20,6 +20,7 @@ import { makeId, THEME_PALETTE, UNASSIGNED_COLOR } from '../context/GraphContext
 
 // ── Header normalization map ───────────────────────────────────────────────────
 // Maps common variations of column names to canonical field names.
+// 'Subtheme' column reserved for future subtheme import support
 const HEADER_MAP = {
   'source':               'source',
   'source / participant': 'source',

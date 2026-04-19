@@ -119,6 +119,13 @@ export default function Toolbar({
               Themes
             </TbBtn>
             <TbBtn
+              onClick={() => onSearchFilterChange('subthemes')}
+              active={searchFilters.subthemes}
+              aria-pressed={searchFilters.subthemes}
+            >
+              Subthemes
+            </TbBtn>
+            <TbBtn
               onClick={() => onSearchFilterChange('codes')}
               active={searchFilters.codes}
               aria-pressed={searchFilters.codes}

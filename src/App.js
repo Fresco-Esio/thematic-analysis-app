@@ -74,7 +74,7 @@ function AppInner() {
   // ── Search state
   const [searchOpen,    setSearchOpen]    = useState(false);
   const [searchQuery,   setSearchQuery]   = useState('');
-  const [searchFilters, setSearchFilters] = useState({ themes: true, codes: true });
+  const [searchFilters, setSearchFilters] = useState({ themes: true, subthemes: true, codes: true });
 
   // ── Toolbar actions ─────────────────────────────────────────────────────────
 

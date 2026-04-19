@@ -499,8 +499,9 @@ export default function Canvas({
       graphState.nodes
         .filter(n => {
           const typeMatch =
-            (n.type === 'theme' && searchFilters.themes) ||
-            (n.type === 'code'  && searchFilters.codes);
+            (n.type === 'theme'    && searchFilters.themes) ||
+            (n.type === 'subtheme' && searchFilters.subthemes) ||
+            (n.type === 'code'     && searchFilters.codes);
           return typeMatch && (n.label || '').toLowerCase().includes(lowerQuery);
         })
         .map(n => n.id)
