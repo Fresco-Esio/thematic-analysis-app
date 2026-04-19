@@ -365,6 +365,47 @@ test('14 — edge relationship panel opens via context menu and closes on Escape
   await expect(page.getByText(/RELATIONSHIP/i)).not.toBeVisible({ timeout: 3000 });
 });
 
+// ── 15. Subtheme creation ─────────────────────────────────────────────────
+
+test('creates a subtheme node from toolbar', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Subtheme/ }).click();
+  await expect(page.locator('[data-node-type="subtheme"]')).toBeVisible();
+});
+
+// ── 16. Subtheme rename ───────────────────────────────────────────────────
+
+test('renames a subtheme via context menu', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Subtheme/ }).click();
+  const subtheme = page.locator('[data-node-type="subtheme"]');
+  await subtheme.click({ button: 'right', force: true });
+  await page.getByRole('menuitem', { name: /Rename Subtheme/ }).click();
+  await page.getByPlaceholder('Enter subtheme name…').fill('Identity');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(subtheme).toContainText('Identity');
+});
+
+// ── 17. Add subtheme from theme context menu ──────────────────────────────
+
+test('adds a subtheme from a theme context menu', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Theme/ }).click();
+  const theme = page.locator('[data-node-type="theme"]');
+  await theme.click({ button: 'right', force: true });
+  await page.getByRole('menuitem', { name: /Add Subtheme/ }).click();
+  await expect(page.locator('[data-node-type="subtheme"]')).toBeVisible();
+});
+
+// ── 18. Collapse/expand via context menu ──────────────────────────────────
+
+test('collapses and expands codes from subtheme context menu', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Subtheme/ }).click();
+  const subtheme = page.locator('[data-node-type="subtheme"]');
+  await subtheme.click({ button: 'right', force: true });
+  await expect(page.getByRole('menuitem', { name: /Collapse Codes/ })).toBeVisible();
+  await page.getByRole('menuitem', { name: /Collapse Codes/ }).click();
+  await subtheme.click({ button: 'right', force: true });
+  await expect(page.getByRole('menuitem', { name: /Expand Codes/ })).toBeVisible();
+});
+
 // ── 13. LocalStorage persistence ───────────────────────────────────────────
 
 test('13 — graph state persists across page reload', async ({ page }) => {
