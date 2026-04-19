@@ -15,6 +15,11 @@
  *  11. Fit View
  *  12. Clear canvas
  *  13. LocalStorage persistence
+ *  14. Edge relationship panel
+ *  15. Subtheme creation from toolbar
+ *  16. Subtheme rename via context menu
+ *  17. Add subtheme from theme context menu
+ *  18. Collapse/expand codes via subtheme context menu
  */
 
 const { test, expect } = require('@playwright/test');
@@ -367,16 +372,16 @@ test('14 — edge relationship panel opens via context menu and closes on Escape
 
 // ── 15. Subtheme creation ─────────────────────────────────────────────────
 
-test('creates a subtheme node from toolbar', async ({ page }) => {
+test('15 — creates a subtheme node from toolbar', async ({ page }) => {
   await page.getByRole('button', { name: /Add Subtheme/ }).click();
-  await expect(page.locator('[data-node-type="subtheme"]')).toBeVisible();
+  await expect(page.locator('[data-node-type="subtheme"]').first()).toBeVisible();
 });
 
 // ── 16. Subtheme rename ───────────────────────────────────────────────────
 
-test('renames a subtheme via context menu', async ({ page }) => {
+test('16 — renames a subtheme via context menu', async ({ page }) => {
   await page.getByRole('button', { name: /Add Subtheme/ }).click();
-  const subtheme = page.locator('[data-node-type="subtheme"]');
+  const subtheme = page.locator('[data-node-type="subtheme"]').first();
   await subtheme.click({ button: 'right', force: true });
   await page.getByRole('menuitem', { name: /Rename Subtheme/ }).click();
   await page.getByPlaceholder('Enter subtheme name…').fill('Identity');
@@ -386,19 +391,19 @@ test('renames a subtheme via context menu', async ({ page }) => {
 
 // ── 17. Add subtheme from theme context menu ──────────────────────────────
 
-test('adds a subtheme from a theme context menu', async ({ page }) => {
+test('17 — adds a subtheme from a theme context menu', async ({ page }) => {
   await page.getByRole('button', { name: /Add Theme/ }).click();
-  const theme = page.locator('[data-node-type="theme"]');
+  const theme = page.locator('[role="button"][aria-label*="theme"]').first();
   await theme.click({ button: 'right', force: true });
   await page.getByRole('menuitem', { name: /Add Subtheme/ }).click();
-  await expect(page.locator('[data-node-type="subtheme"]')).toBeVisible();
+  await expect(page.locator('[data-node-type="subtheme"]').first()).toBeVisible();
 });
 
 // ── 18. Collapse/expand via context menu ──────────────────────────────────
 
-test('collapses and expands codes from subtheme context menu', async ({ page }) => {
+test('18 — collapses and expands codes from subtheme context menu', async ({ page }) => {
   await page.getByRole('button', { name: /Add Subtheme/ }).click();
-  const subtheme = page.locator('[data-node-type="subtheme"]');
+  const subtheme = page.locator('[data-node-type="subtheme"]').first();
   await subtheme.click({ button: 'right', force: true });
   await expect(page.getByRole('menuitem', { name: /Collapse Codes/ })).toBeVisible();
   await page.getByRole('menuitem', { name: /Collapse Codes/ }).click();
