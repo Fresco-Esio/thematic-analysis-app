@@ -13,7 +13,8 @@
  *   connectMode             {boolean}
  *   focusThemeId            {string|null}   — if set, dims nodes outside the focused cluster
  *   focusedNodeIds          {Set<string>}   — set of IDs in the focused cluster (or empty)
- *   isCollapsed             {boolean}       — true if this code node is hidden (parent collapsed)
+ *   isCollapsed             {boolean}       — true if this code's parent subtheme is collapsed (fly-to animation)
+ *   isDot                   {boolean}       — true if this code's parent theme is collapsed (shrink-to-dot in place)
  *   collapsingIntoPosition  {{x,y}|null}    — world-coord position of the parent node to fly toward
  *   collapsedCodeCount      {number}        — for subtheme nodes, number of codes collapsed into them
  *   onMouseEnter            {fn}
@@ -41,6 +42,7 @@ export default function GraphNode({
   searchActive = false,
   isSearchMatch = false,
   isCollapsed = false,
+  isDot = false,
   collapsingIntoPosition = null,
   collapsedCodeCount = 0,
   onMouseEnter = () => {},
@@ -130,6 +132,7 @@ export default function GraphNode({
       initial="initial"
       animate={
         isCollapsed   ? 'collapsed'  :
+        isDot         ? 'dot'        :
         isConnecting  ? 'connecting' :
         'visible'
       }

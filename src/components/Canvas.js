@@ -695,8 +695,11 @@ export default function Canvas({
       >
         {/* All nodes rendered as GraphNode */}
         {(() => {
-          // Build collapsingPositionMap once outside the node loop
+          // Build collapse lookup Maps once, outside the node loop
+          // collapsingPositionMap: codeId → parent {x,y} (for 'collapsed' variant fly-to)
+          // dotCodeIds: Set of codeIds whose parent is a theme (use 'dot' variant — stay in place)
           const collapsingPositionMap = new Map();
+          const dotCodeIds = new Set();
           collapsedCodeIds.forEach(codeId => {
             const parentEdge = graphState.edges.find(e => {
               const otherId = e.source === codeId ? e.target : (e.target === codeId ? e.source : null);
@@ -705,6 +708,8 @@ export default function Canvas({
             if (parentEdge) {
               const parentId = parentEdge.source === codeId ? parentEdge.target : parentEdge.source;
               collapsingPositionMap.set(codeId, getNodePos(parentId));
+              const parentNode = graphState.nodes.find(n => n.id === parentId);
+              if (parentNode?.type === 'theme') dotCodeIds.add(codeId);
             }
           });
 
@@ -746,7 +751,8 @@ export default function Canvas({
           };
 
           // Collapse props
-          const isCollapsed = collapsedCodeIds.has(node.id);
+          const isCollapsed = collapsedCodeIds.has(node.id) && !dotCodeIds.has(node.id);
+          const isDot = dotCodeIds.has(node.id);
           const collapsingIntoPosition = isCollapsed ? (collapsingPositionMap.get(node.id) ?? null) : null;
           const collapsedCodeCount = (node.type === 'theme' || node.type === 'subtheme')
             ? graphState.edges.filter(e => {
@@ -768,6 +774,7 @@ export default function Canvas({
               searchActive={searchActive}
               isSearchMatch={matchedNodeIds.has(node.id)}
               isCollapsed={isCollapsed}
+              isDot={isDot}
               collapsingIntoPosition={collapsingIntoPosition}
               collapsedCodeCount={collapsedCodeCount}
               onClick={handleClick}
