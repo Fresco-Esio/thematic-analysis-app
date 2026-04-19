@@ -77,6 +77,24 @@ function AppInner() {
   const [searchQuery,   setSearchQuery]   = useState('');
   const [searchFilters, setSearchFilters] = useState({ themes: true, subthemes: true, codes: true });
 
+  // ── Keyboard shortcuts ──────────────────────────────────────────────────────
+  useEffect(() => {
+    function handleKeyDown(e) {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
+
   // ── Toolbar actions ─────────────────────────────────────────────────────────
 
   function handleAddTheme() {
