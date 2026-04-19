@@ -514,7 +514,8 @@ export default function Canvas({
     graphState.nodes.forEach(n => {
       if (collapsedNodeIds.has(n.id)) {
         graphState.edges.forEach(e => {
-          const codeId = e.source !== n.id ? e.source : e.target;
+          if (e.source !== n.id && e.target !== n.id) return;
+          const codeId = e.source === n.id ? e.target : e.source;
           const codeNode = graphState.nodes.find(nd => nd.id === codeId);
           if (codeNode?.type === 'code') ids.add(codeId);
         });
@@ -600,8 +601,9 @@ export default function Canvas({
             const labelWidth = labelChars * 6.5 + 8;
             const labelHeight = 16;
 
+            const isEdgeCollapsed = collapsedCodeIds.has(edge.source) || collapsedCodeIds.has(edge.target);
             return (
-              <g key={edge.id}>
+              <g key={edge.id} style={{ opacity: isEdgeCollapsed ? 0 : 1, transition: 'opacity 0.3s ease' }}>
                 <line
                   x1={x1}
                   y1={y1}
@@ -613,8 +615,8 @@ export default function Canvas({
                   strokeDasharray={dashArray || undefined}
                   style={{
                     cursor: 'pointer',
-                    transition: 'stroke-width 150ms ease, opacity 0.3s ease',
-                    opacity: collapsedCodeIds.has(edge.source) || collapsedCodeIds.has(edge.target) ? 0 : (isActive ? 1 : 0.6),
+                    transition: 'stroke-width 150ms ease',
+                    opacity: isActive ? 1 : 0.6,
                   }}
                   onMouseEnter={() => handleEdgeMouseEnter(edge.id)}
                   onMouseLeave={() => handleEdgeMouseLeave()}
@@ -742,7 +744,7 @@ export default function Canvas({
             });
             if (parentEdge) {
               const parentId = parentEdge.source === node.id ? parentEdge.target : parentEdge.source;
-              collapsingIntoPosition = positions.current.get(parentId) || null;
+              collapsingIntoPosition = getNodePos(parentId);
             }
           }
           const collapsedCodeCount = (node.type === 'theme' || node.type === 'subtheme')
