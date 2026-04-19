@@ -147,7 +147,7 @@ export function graphReducer(state, action) {
         if (!codeNode) continue;
         const key = `${codeId}__${action.targetId}`;
         if (!existingEdgePairs.has(key)) {
-          newEdges.push({ id: `edge-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, source: codeId, target: action.targetId });
+          newEdges.push({ id: `edge-${codeId}-${action.targetId}`, source: codeId, target: action.targetId });
         }
       }
 

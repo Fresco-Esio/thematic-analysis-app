@@ -144,3 +144,14 @@ test('BULK_ASSIGN_THEME via subtheme resolves to parent theme', () => {
   expect(c1.primaryThemeId).toBe('t1');
   expect(next.edges[0].target).toBe('s1');
 });
+
+test('DELETE_NODES with empty ids array is a no-op', () => {
+  const next = graphReducer(bulkBaseState, { type: 'DELETE_NODES', ids: [] });
+  expect(next.nodes).toHaveLength(bulkBaseState.nodes.length);
+  expect(next.edges).toHaveLength(bulkBaseState.edges.length);
+});
+
+test('BULK_ASSIGN_THEME with non-existent targetId returns state unchanged', () => {
+  const next = graphReducer(bulkBaseState, { type: 'BULK_ASSIGN_THEME', nodeIds: ['c1'], targetId: 'does-not-exist' });
+  expect(next).toBe(bulkBaseState); // referential equality — no new object
+});
