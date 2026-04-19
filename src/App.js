@@ -100,8 +100,9 @@ function AppInner() {
   }
 
   function handleAlign() {
-    const themeNodes = nodes.filter(n => n.type === 'theme');
-    const codeNodes  = nodes.filter(n => n.type === 'code');
+    const themeNodes    = nodes.filter(n => n.type === 'theme');
+    const codeNodes     = nodes.filter(n => n.type === 'code');
+    const subthemeNodes = nodes.filter(n => n.type === 'subtheme');
     const cx = window.innerWidth  / 2;
     const cy = window.innerHeight / 2;
     const themeRingR = Math.max(300, themeNodes.length * 80);
@@ -112,6 +113,32 @@ function AppInner() {
       dispatch({ type: 'UPDATE_NODE', id: theme.id, changes: {
         x: cx + Math.cos(angle) * themeRingR,
         y: cy + Math.sin(angle) * themeRingR,
+      }});
+    });
+
+    // 1b. Subtheme nodes on a ring between theme and its codes
+    themeNodes.forEach((theme, ti) => {
+      const themeAngle = (2 * Math.PI * ti) / themeNodes.length - Math.PI / 2;
+      const themeX = cx + Math.cos(themeAngle) * themeRingR;
+      const themeY = cy + Math.sin(themeAngle) * themeRingR;
+      const connectedSubthemes = subthemeNodes.filter(n => n.primaryThemeId === theme.id);
+      const subRingR = 180;
+      connectedSubthemes.forEach((sub, si) => {
+        const subAngle = (2 * Math.PI * si) / Math.max(connectedSubthemes.length, 1) - Math.PI / 2;
+        dispatch({ type: 'UPDATE_NODE', id: sub.id, changes: {
+          x: themeX + Math.cos(subAngle) * subRingR,
+          y: themeY + Math.sin(subAngle) * subRingR,
+        }});
+      });
+    });
+
+    // Unassigned subthemes
+    const unassignedSubthemes = subthemeNodes.filter(n => !n.primaryThemeId);
+    unassignedSubthemes.forEach((sub, i) => {
+      const angle = (2 * Math.PI * i) / Math.max(unassignedSubthemes.length, 1) - Math.PI / 2;
+      dispatch({ type: 'UPDATE_NODE', id: sub.id, changes: {
+        x: cx + Math.cos(angle) * 160,
+        y: cy + Math.sin(angle) * 160,
       }});
     });
 
