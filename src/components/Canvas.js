@@ -153,6 +153,7 @@ export default function Canvas({
   searchFilters = { themes: true, codes: true },
   focusThemeId = null,
   onExitFocus,
+  collapsedNodeIds = new Set(),
 }) {
   const graphState = useGraph();
   const dispatch = useGraphDispatch();
@@ -506,6 +507,22 @@ export default function Canvas({
     );
   }, [graphState.nodes, searchQuery, searchFilters, searchActive]);
 
+  // ── Collapsed Code IDs ───────────────────────────────────────────────
+
+  const collapsedCodeIds = useMemo(() => {
+    const ids = new Set();
+    graphState.nodes.forEach(n => {
+      if (collapsedNodeIds.has(n.id)) {
+        graphState.edges.forEach(e => {
+          const codeId = e.source !== n.id ? e.source : e.target;
+          const codeNode = graphState.nodes.find(nd => nd.id === codeId);
+          if (codeNode?.type === 'code') ids.add(codeId);
+        });
+      }
+    });
+    return ids;
+  }, [collapsedNodeIds, graphState.nodes, graphState.edges]);
+
   // ── Edge List (Memoized) ──────────────────────────────────────────────
 
   const edgeListMemo = useMemo(() => {
@@ -594,10 +611,10 @@ export default function Canvas({
                   strokeWidth={strokeWidth}
                   strokeLinecap="round"
                   strokeDasharray={dashArray || undefined}
-                  opacity={isActive ? 1 : 0.6}
                   style={{
                     cursor: 'pointer',
-                    transition: 'stroke-width 150ms ease, opacity 150ms ease',
+                    transition: 'stroke-width 150ms ease, opacity 0.3s ease',
+                    opacity: collapsedCodeIds.has(edge.source) || collapsedCodeIds.has(edge.target) ? 0 : (isActive ? 1 : 0.6),
                   }}
                   onMouseEnter={() => handleEdgeMouseEnter(edge.id)}
                   onMouseLeave={() => handleEdgeMouseLeave()}
@@ -714,6 +731,27 @@ export default function Canvas({
             }
           };
 
+          // Collapse props
+          const isCollapsed = collapsedCodeIds.has(node.id);
+          let collapsingIntoPosition = null;
+          if (isCollapsed) {
+            const parentEdge = graphState.edges.find(e => {
+              const otherId = e.source === node.id ? e.target : (e.target === node.id ? e.source : null);
+              if (!otherId) return false;
+              return collapsedNodeIds.has(otherId);
+            });
+            if (parentEdge) {
+              const parentId = parentEdge.source === node.id ? parentEdge.target : parentEdge.source;
+              collapsingIntoPosition = positions.current.get(parentId) || null;
+            }
+          }
+          const collapsedCodeCount = (node.type === 'theme' || node.type === 'subtheme')
+            ? graphState.edges.filter(e => {
+                const otherId = e.source === node.id ? e.target : e.target === node.id ? e.source : null;
+                return otherId && collapsedCodeIds.has(otherId);
+              }).length
+            : 0;
+
           return (
             <GraphNode
               key={node.id}
@@ -726,6 +764,9 @@ export default function Canvas({
               focusedNodeIds={focusedNodeIds}
               searchActive={searchActive}
               isSearchMatch={matchedNodeIds.has(node.id)}
+              isCollapsed={isCollapsed}
+              collapsingIntoPosition={collapsingIntoPosition}
+              collapsedCodeCount={collapsedCodeCount}
               onClick={handleClick}
               onContextMenu={handleContextMenu}
               onMouseEnter={handleMouseEnter}
