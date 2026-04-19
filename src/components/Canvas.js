@@ -154,6 +154,9 @@ export default function Canvas({
   focusThemeId = null,
   onExitFocus,
   collapsedNodeIds = new Set(),
+  selectedNodeIds = new Set(),
+  onShiftClickNode = () => {},
+  onClearSelection = () => {},
 }) {
   const graphState = useGraph();
   const dispatch = useGraphDispatch();
@@ -582,6 +585,7 @@ export default function Canvas({
           height: '100%',
           pointerEvents: 'auto',
         }}
+        onClick={onClearSelection}
       >
         {/* Edges group */}
         <g id="edges">
@@ -720,7 +724,12 @@ export default function Canvas({
           const isSelected = canvasState.hoveredNodeId === node.id && connectMode;
 
           // Route clicks based on node type (code → source, theme → target in connect mode)
-          const handleClick = () => {
+          const handleClick = (e) => {
+            if (e && e.shiftKey) {
+              onShiftClickNode(node.id);
+              return;
+            }
+            onClearSelection();
             if (node.type === 'code') {
               handleCodeNodeClick(node.id);
             } else {
@@ -769,6 +778,7 @@ export default function Canvas({
               node={node}
               position={pos}
               isSelected={isSelected}
+              isMultiSelected={selectedNodeIds.has(node.id)}
               isConnecting={isConnecting}
               connectMode={connectMode}
               focusThemeId={focusThemeId}

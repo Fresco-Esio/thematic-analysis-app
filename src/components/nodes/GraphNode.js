@@ -35,6 +35,7 @@ export default function GraphNode({
   node,
   position,
   isSelected = false,
+  isMultiSelected = false,
   isConnecting = false,
   connectMode = false,
   focusThemeId = null,
@@ -74,6 +75,9 @@ export default function GraphNode({
     if (searchActive && isSearchMatch) {
       return `4px 4px 0 #dc2626`;
     }
+    if (isMultiSelected) {
+      return `0 0 0 3px #3b82f6, 4px 4px 0 #0f0d0a`;
+    }
     if (isConnecting) {
       return `0 0 0 4px #fff, 0 0 24px 8px ${color}`;
     }
@@ -102,7 +106,7 @@ export default function GraphNode({
   // Motion variants
   const variants = {
     initial:    { scale: 0.6, opacity: 0 },
-    visible:    { scale: isSelected ? 1.04 : 1, opacity, transition: springs.entrance },
+    visible:    { scale: (isSelected || isMultiSelected) ? 1.04 : 1, opacity, transition: springs.entrance },
     connecting: {
       scale: 1.08,
       opacity: [opacity, opacity * 0.8, opacity],
