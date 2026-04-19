@@ -107,7 +107,7 @@ function AppInner() {
   }
 
   function handleClear() {
-    if (window.confirm('Clear the entire canvas? This cannot be undone.')) {
+    if (window.confirm('Clear the entire canvas? (You can undo this with Ctrl+Z)')) {
       dispatch({ type: 'CLEAR' });
     }
   }

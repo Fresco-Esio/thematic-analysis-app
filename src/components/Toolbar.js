@@ -15,6 +15,10 @@
  *   onExportPdf     {fn}
  *   onTogglePhysics {fn}
  *   onClear         {fn}
+ *   canUndo         {boolean}
+ *   canRedo         {boolean}
+ *   onUndo          {fn}
+ *   onRedo          {fn}
  */
 
 import React, { useRef, useEffect } from 'react';
