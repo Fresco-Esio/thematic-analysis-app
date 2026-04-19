@@ -729,7 +729,7 @@ export default function Canvas({
               onShiftClickNode(node.id);
               return;
             }
-            onClearSelection();
+            if (!connectMode) onClearSelection();
             if (node.type === 'code') {
               handleCodeNodeClick(node.id);
             } else {

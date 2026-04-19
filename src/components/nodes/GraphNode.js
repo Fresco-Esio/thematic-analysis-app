@@ -155,7 +155,7 @@ export default function GraphNode({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       aria-label={`${node.label || 'Unnamed'} — ${isTheme ? 'theme' : isSubtheme ? 'subtheme' : 'code'} node`}
-      aria-pressed={isSelected}
+      aria-pressed={isSelected || isMultiSelected}
       style={{
         position:        'absolute',
         left:            position ? (isSubtheme ? position.x - subthemeWidth / 2 : position.x - radius) : 0,
