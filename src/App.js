@@ -237,9 +237,43 @@ function AppInner() {
     if (el) await exportToPdf(el);
   }
 
+  // ── Bulk actions ────────────────────────────────────────────────────────────
+  function handleBulkDelete() {
+    dispatch({ type: 'DELETE_NODES', ids: [...selectedNodeIds] });
+    setSelectedNodeIds(new Set());
+  }
+
+  function handleBulkAssign(targetId) {
+    const codeIds = [...selectedNodeIds].filter(nodeId => {
+      const n = nodes.find(nd => nd.id === nodeId);
+      return n && n.type === 'code';
+    });
+    dispatch({ type: 'BULK_ASSIGN_THEME', nodeIds: codeIds, targetId });
+    setSelectedNodeIds(new Set());
+  }
+
   // ── Context menu handler (from Canvas) ──────────────────────────────────────
   function handleContextMenu(type, id, x, y) {
     let items = [];
+
+    // Selection context menu (multi-select)
+    if (selectedNodeIds.size > 1 && selectedNodeIds.has(id)) {
+      const hasCode = [...selectedNodeIds].some(nodeId => {
+        const n = nodes.find(nd => nd.id === nodeId);
+        return n && n.type === 'code';
+      });
+      items = [
+        { label: `✕ Delete ${selectedNodeIds.size} nodes`, action: handleBulkDelete, danger: true },
+      ];
+      if (hasCode) {
+        const assignTargets = nodes.filter(n => n.type === 'theme' || n.type === 'subtheme');
+        assignTargets.forEach(n => {
+          items.push({ label: `Assign to: ${n.label}`, action: () => handleBulkAssign(n.id) });
+        });
+      }
+      setCtxMenu({ visible: true, x, y, items });
+      return;
+    }
 
     if (type === 'code-edit' || type === 'code') {
       items = [
