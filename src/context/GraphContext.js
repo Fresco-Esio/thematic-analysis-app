@@ -24,7 +24,7 @@
  *   CLEAR         {}                          — wipe everything
  */
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -244,43 +244,107 @@ export function graphReducer(state, action) {
   }
 }
 
+// ── History helpers ───────────────────────────────────────────────────────────
+
+const POSITION_ONLY_KEYS = new Set(['x', 'y']);
+
+function isUndoable(action) {
+  if (action.type === 'SET_GRAPH') return false;
+  if (action.type === 'UPDATE_NODE') {
+    const keys = Object.keys(action.changes || {});
+    return keys.some(k => !POSITION_ONLY_KEYS.has(k));
+  }
+  return true;
+}
+
+const MAX_HISTORY = 50;
+
+function historyReducer(state, action) {
+  // state = { past: [], present: {nodes,edges}, future: [] }
+  if (action.type === 'UNDO') {
+    if (state.past.length === 0) return state;
+    const previous = state.past[state.past.length - 1];
+    return {
+      past:    state.past.slice(0, -1),
+      present: previous,
+      future:  [state.present, ...state.future],
+    };
+  }
+  if (action.type === 'REDO') {
+    if (state.future.length === 0) return state;
+    const next = state.future[0];
+    return {
+      past:    [...state.past, state.present].slice(-MAX_HISTORY),
+      present: next,
+      future:  state.future.slice(1),
+    };
+  }
+
+  const nextPresent = graphReducer(state.present, action);
+  if (nextPresent === state.present) return state; // no-op
+
+  if (isUndoable(action)) {
+    return {
+      past:    [...state.past, state.present].slice(-MAX_HISTORY),
+      present: nextPresent,
+      future:  [],
+    };
+  }
+  return { ...state, present: nextPresent };
+}
+
 // ── Context setup ─────────────────────────────────────────────────────────────
 
 const GraphStateContext    = createContext(null);
 const GraphDispatchContext = createContext(null);
+const GraphHistoryContext  = createContext(null);
+
+export function useGraphHistory() {
+  const ctx = useContext(GraphHistoryContext);
+  if (!ctx) throw new Error('useGraphHistory must be used inside <GraphProvider>');
+  return ctx;
+}
 
 export function GraphProvider({ children }) {
   // Restore persisted state synchronously via lazy initializer so the very
   // first render already has the saved graph and the save effect never
   // overwrites localStorage with an empty state.
-  const [state, dispatch] = useReducer(graphReducer, initialState, () => {
+  const [state, dispatch] = useReducer(historyReducer, null, () => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.nodes && parsed.edges) {
-          return { nodes: parsed.nodes, edges: parsed.edges };
+          return { past: [], present: { nodes: parsed.nodes, edges: parsed.edges }, future: [] };
         }
       }
     } catch (e) {
       console.warn('Failed to restore graph from localStorage:', e);
     }
-    return initialState;
+    return { past: [], present: initialState, future: [] };
   });
 
-  // Save to localStorage on every state change
+  // Save to localStorage on every state change (present only — history is ephemeral)
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.present));
     } catch (e) {
       console.warn('Failed to save graph to localStorage:', e);
     }
-  }, [state]);
+  }, [state.present]);
+
+  const canUndo = state.past.length > 0;
+  const canRedo = state.future.length > 0;
+
+  const undo = useCallback(() => dispatch({ type: 'UNDO' }), []);
+  const redo = useCallback(() => dispatch({ type: 'REDO' }), []);
 
   return (
-    <GraphStateContext.Provider value={state}>
+    <GraphStateContext.Provider value={state.present}>
       <GraphDispatchContext.Provider value={dispatch}>
-        {children}
+        <GraphHistoryContext.Provider value={{ canUndo, canRedo, undo, redo }}>
+          {children}
+        </GraphHistoryContext.Provider>
       </GraphDispatchContext.Provider>
     </GraphStateContext.Provider>
   );
