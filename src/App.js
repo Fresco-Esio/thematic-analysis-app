@@ -225,7 +225,10 @@ function AppInner() {
             const msg = connectedCount > 0
               ? `Delete theme? ${connectedCount} connected node(s) will become unassigned.`
               : 'Delete this theme?';
-            if (window.confirm(msg)) dispatch({ type: 'DELETE_NODE', id });
+            if (window.confirm(msg)) {
+              dispatch({ type: 'DELETE_NODE', id });
+              setCollapsedNodeIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+            }
           }, danger: true },
       ];
     } else if (type === 'subtheme') {
@@ -234,8 +237,10 @@ function AppInner() {
         { label: collapsedNodeIds.has(id) ? '⊞ Expand Codes' : '⊟ Collapse Codes', action: () => toggleCollapse(id) },
         { label: '✕ Delete Subtheme', action: () => {
             const subthemeNode = nodes.find(n => n.id === id);
-            if (window.confirm(`Delete subtheme "${subthemeNode?.label ?? 'this subtheme'}"?`))
+            if (window.confirm(`Delete subtheme "${subthemeNode?.label ?? 'this subtheme'}"?`)) {
               dispatch({ type: 'DELETE_NODE', id });
+              setCollapsedNodeIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+            }
           }, danger: true },
       ];
     } else if (type === 'edge') {
