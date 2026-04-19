@@ -107,7 +107,9 @@ test('DELETE_NODES reverts primaryThemeId if theme is deleted', () => {
     edges: [],
   };
   const next = graphReducer(state, { type: 'DELETE_NODES', ids: ['t1'] });
-  expect(next.nodes.find(n => n.id === 'c1').primaryThemeId).toBeNull();
+  const c1 = next.nodes.find(n => n.id === 'c1');
+  expect(c1.primaryThemeId).toBeNull();
+  expect(c1.color).toBe('#6b7280');
 });
 
 test('BULK_ASSIGN_THEME assigns codes to a theme and adds edges', () => {
