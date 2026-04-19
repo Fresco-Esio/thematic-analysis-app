@@ -411,6 +411,87 @@ test('18 — collapses and expands codes from subtheme context menu', async ({ p
   await expect(page.getByRole('menuitem', { name: /Expand Codes/ })).toBeVisible();
 });
 
+// ── 19. Undo/Redo buttons exist and are initially disabled ────────────────
+
+test('19 — undo/redo buttons exist and are initially disabled', async ({ page }) => {
+  const undoBtn = page.getByRole('button', { name: /Undo/i });
+  const redoBtn = page.getByRole('button', { name: /Redo/i });
+
+  await expect(undoBtn).toBeVisible();
+  await expect(redoBtn).toBeVisible();
+
+  await expect(undoBtn).toBeDisabled();
+  await expect(redoBtn).toBeDisabled();
+});
+
+// ── 20. Undo restores deleted node ────────────────────────────────────────
+
+test('20 — undo restores deleted theme node', async ({ page }) => {
+  // Add a theme
+  await page.getByRole('button', { name: /Add Theme/i }).click();
+  expect((await statusCounts(page)).themes).toBe(1);
+
+  // Undo button should now be enabled
+  const undoBtn = page.getByRole('button', { name: /Undo/i });
+  await expect(undoBtn).toBeEnabled();
+
+  // Delete the theme via context menu
+  page.on('dialog', d => d.accept());
+  const themeNode = page.locator('[role="button"][aria-label*="theme"]').first();
+  await themeNode.click({ button: 'right', force: true });
+  await page.getByRole('menuitem', { name: /Delete Theme/i }).click();
+
+  // Verify it's gone
+  await expect(async () => {
+    expect((await statusCounts(page)).themes).toBe(0);
+  }).toPass({ timeout: 3000 });
+
+  // Click Undo
+  await undoBtn.click();
+
+  // Theme should be back
+  await expect(async () => {
+    expect((await statusCounts(page)).themes).toBe(1);
+  }).toPass({ timeout: 3000 });
+});
+
+// ── 21. Shift+Click multi-select and bulk delete ──────────────────────────
+
+test('21 — shift+click multi-select and bulk delete', async ({ page }) => {
+  // Add two theme nodes
+  await page.getByRole('button', { name: /Add Theme/i }).click();
+  await page.getByRole('button', { name: /Add Theme/i }).click();
+  expect((await statusCounts(page)).themes).toBe(2);
+
+  const themeNodes = page.locator('[role="button"][aria-label*="theme"]');
+  await expect(themeNodes).toHaveCount(2);
+
+  // Shift+click first node
+  await page.keyboard.down('Shift');
+  await themeNodes.nth(0).click({ force: true });
+  await page.keyboard.up('Shift');
+
+  // Shift+click second node
+  await page.keyboard.down('Shift');
+  await themeNodes.nth(1).click({ force: true });
+  await page.keyboard.up('Shift');
+
+  // Right-click on one of the selected nodes to get selection context menu
+  await themeNodes.nth(0).click({ button: 'right', force: true });
+
+  // Context menu should show "Delete 2 nodes"
+  const bulkDeleteBtn = page.getByRole('menuitem', { name: /Delete 2 nodes/i });
+  await expect(bulkDeleteBtn).toBeVisible({ timeout: 3000 });
+
+  page.on('dialog', d => d.accept());
+  await bulkDeleteBtn.click();
+
+  // Both nodes should be gone
+  await expect(async () => {
+    expect((await statusCounts(page)).themes).toBe(0);
+  }).toPass({ timeout: 3000 });
+});
+
 // ── 13. LocalStorage persistence ───────────────────────────────────────────
 
 test('13 — graph state persists across page reload', async ({ page }) => {
