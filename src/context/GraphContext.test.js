@@ -81,3 +81,64 @@ describe('UPDATE_EDGE', () => {
     expect(next).toBe(baseState);
   });
 });
+
+const bulkBaseState = {
+  nodes: [
+    { id: 't1', type: 'theme', label: 'Theme 1', color: '#4f46e5', primaryThemeId: null },
+    { id: 'c1', type: 'code',  label: 'Code 1',  color: '#6b7280', primaryThemeId: null },
+    { id: 'c2', type: 'code',  label: 'Code 2',  color: '#6b7280', primaryThemeId: null },
+  ],
+  edges: [{ id: 'e1', source: 'c1', target: 't1' }],
+};
+
+test('DELETE_NODES removes multiple nodes and touching edges', () => {
+  const next = graphReducer(bulkBaseState, { type: 'DELETE_NODES', ids: ['c1', 'c2'] });
+  expect(next.nodes).toHaveLength(1);
+  expect(next.nodes[0].id).toBe('t1');
+  expect(next.edges).toHaveLength(0);
+});
+
+test('DELETE_NODES reverts primaryThemeId if theme is deleted', () => {
+  const state = {
+    nodes: [
+      { id: 't1', type: 'theme', label: 'Theme 1', color: '#4f46e5' },
+      { id: 'c1', type: 'code',  label: 'Code 1',  primaryThemeId: 't1', color: '#4f46e5' },
+    ],
+    edges: [],
+  };
+  const next = graphReducer(state, { type: 'DELETE_NODES', ids: ['t1'] });
+  expect(next.nodes.find(n => n.id === 'c1').primaryThemeId).toBeNull();
+});
+
+test('BULK_ASSIGN_THEME assigns codes to a theme and adds edges', () => {
+  const next = graphReducer(bulkBaseState, {
+    type: 'BULK_ASSIGN_THEME',
+    nodeIds: ['c1', 'c2'],
+    targetId: 't1',
+  });
+  const c1 = next.nodes.find(n => n.id === 'c1');
+  const c2 = next.nodes.find(n => n.id === 'c2');
+  expect(c1.primaryThemeId).toBe('t1');
+  expect(c2.primaryThemeId).toBe('t1');
+  expect(c1.color).toBe('#4f46e5');
+  expect(next.edges).toHaveLength(2); // e1 already existed for c1→t1, add c2→t1
+});
+
+test('BULK_ASSIGN_THEME via subtheme resolves to parent theme', () => {
+  const state = {
+    nodes: [
+      { id: 't1', type: 'theme',    label: 'Theme 1',    color: '#4f46e5', primaryThemeId: null },
+      { id: 's1', type: 'subtheme', label: 'Subtheme 1', color: '#4f46e5', primaryThemeId: 't1' },
+      { id: 'c1', type: 'code',     label: 'Code 1',     color: '#6b7280', primaryThemeId: null },
+    ],
+    edges: [],
+  };
+  const next = graphReducer(state, {
+    type: 'BULK_ASSIGN_THEME',
+    nodeIds: ['c1'],
+    targetId: 's1',
+  });
+  const c1 = next.nodes.find(n => n.id === 'c1');
+  expect(c1.primaryThemeId).toBe('t1');
+  expect(next.edges[0].target).toBe('s1');
+});

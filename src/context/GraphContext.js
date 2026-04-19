@@ -107,6 +107,53 @@ export function graphReducer(state, action) {
       };
     }
 
+    case 'DELETE_NODES': {
+      const idSet = new Set(action.ids);
+      return {
+        nodes: state.nodes
+          .filter(n => !idSet.has(n.id))
+          .map(n => {
+            // If a deleted node was this node's primaryThemeId, revert to unassigned
+            if (idSet.has(n.primaryThemeId)) {
+              return { ...n, primaryThemeId: null, color: UNASSIGNED_COLOR };
+            }
+            return n;
+          }),
+        edges: state.edges.filter(e => !idSet.has(e.source) && !idSet.has(e.target)),
+      };
+    }
+
+    case 'BULK_ASSIGN_THEME': {
+      const targetNode = state.nodes.find(n => n.id === action.targetId);
+      if (!targetNode) return state;
+
+      const resolvedThemeId = targetNode.type === 'subtheme'
+        ? targetNode.primaryThemeId
+        : targetNode.id;
+      const themeNode = state.nodes.find(n => n.id === resolvedThemeId);
+      if (!themeNode) return state;
+
+      const codeIdSet = new Set(action.nodeIds);
+
+      const updatedNodes = state.nodes.map(n => {
+        if (n.type !== 'code' || !codeIdSet.has(n.id)) return n;
+        return { ...n, primaryThemeId: resolvedThemeId, color: themeNode.color };
+      });
+
+      const existingEdgePairs = new Set(state.edges.map(e => `${e.source}__${e.target}`));
+      const newEdges = [];
+      for (const codeId of action.nodeIds) {
+        const codeNode = state.nodes.find(n => n.id === codeId && n.type === 'code');
+        if (!codeNode) continue;
+        const key = `${codeId}__${action.targetId}`;
+        if (!existingEdgePairs.has(key)) {
+          newEdges.push({ id: `edge-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, source: codeId, target: action.targetId });
+        }
+      }
+
+      return { nodes: updatedNodes, edges: [...state.edges, ...newEdges] };
+    }
+
     case 'ADD_EDGE': {
       // Prevent duplicate edges
       const dup = state.edges.some(
