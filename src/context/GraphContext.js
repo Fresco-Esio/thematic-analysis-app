@@ -267,7 +267,7 @@ function historyReducer(state, action) {
     return {
       past:    state.past.slice(0, -1),
       present: previous,
-      future:  [state.present, ...state.future],
+      future:  [state.present, ...state.future].slice(0, MAX_HISTORY),
     };
   }
   if (action.type === 'REDO') {
