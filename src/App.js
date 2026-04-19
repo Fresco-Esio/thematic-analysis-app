@@ -17,7 +17,7 @@
  *   - contextMenu:   position + items
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { GraphProvider, useGraphDispatch, useGraph, useGraphHistory, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
 import { loadPhysicsParams } from './utils/forceSimulation';
 import { exportToPng, exportToPdf } from './utils/exportUtils';
@@ -67,6 +67,30 @@ function AppInner() {
       else next.add(nodeId);
       return next;
     });
+  }
+
+  // ── Multi-select state ──────────────────────────────────────────────────────
+  const [selectedNodeIds, setSelectedNodeIds] = useState(new Set());
+
+  function handleShiftClickNode(nodeId) {
+    setSelectedNodeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  }
+
+  function handleToggleConnect() {
+    setConnectMode(prev => {
+      if (!prev) setSelectedNodeIds(new Set()); // entering connect mode → clear selection
+      return !prev;
+    });
+  }
+
+  function handleSetFocusTheme(id) {
+    setFocusThemeId(id);
+    if (id) setSelectedNodeIds(new Set());
   }
 
   // ── Context menu ────────────────────────────────────────────────────────────
@@ -237,7 +261,7 @@ function AppInner() {
             setSubthemeEditId(subId);
           }
         },
-        { label: '⊙ Focus View', action: () => setFocusThemeId(id) },
+        { label: '⊙ Focus View', action: () => handleSetFocusTheme(id) },
         { label: collapsedNodeIds.has(id) ? '⊞ Expand Codes' : '⊟ Collapse Codes', action: () => toggleCollapse(id) },
         { label: '✕ Delete Theme', action: () => {
             const connectedCount = edges.filter(e => e.target === id).length;
@@ -296,7 +320,7 @@ function AppInner() {
         onAddTheme={handleAddTheme}
         onAddCode={handleAddCode}
         onAddSubtheme={handleAddSubtheme}
-        onToggleConnect={() => setConnectMode(m => !m)}
+        onToggleConnect={handleToggleConnect}
         onFitView={() => fitViewFn.current?.()}
         onZoomIn={() => zoomByFn.current?.(1.4)}
         onZoomOut={() => zoomByFn.current?.(1 / 1.4)}
@@ -330,6 +354,9 @@ function AppInner() {
           focusThemeId={focusThemeId}
           onExitFocus={() => setFocusThemeId(null)}
           collapsedNodeIds={collapsedNodeIds}
+          selectedNodeIds={selectedNodeIds}
+          onShiftClickNode={handleShiftClickNode}
+          onClearSelection={() => setSelectedNodeIds(new Set())}
         />
         <PhysicsPanel
           open={physicsOpen}
