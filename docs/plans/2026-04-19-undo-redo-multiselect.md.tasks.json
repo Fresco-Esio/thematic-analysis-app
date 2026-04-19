@@ -1,0 +1,52 @@
+{
+  "planPath": "docs/plans/2026-04-19-undo-redo-multiselect.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 1: Add DELETE_NODES and BULK_ASSIGN_THEME to graphReducer",
+      "status": "pending"
+    },
+    {
+      "id": 1,
+      "subject": "Task 2: Wrap graphReducer with historyReducer",
+      "status": "pending",
+      "blockedBy": [0]
+    },
+    {
+      "id": 2,
+      "subject": "Task 3: Toolbar Undo/Redo Buttons",
+      "status": "pending",
+      "blockedBy": [1]
+    },
+    {
+      "id": 3,
+      "subject": "Task 4: Keyboard Shortcuts Ctrl+Z / Ctrl+Y",
+      "status": "pending",
+      "blockedBy": [1]
+    },
+    {
+      "id": 4,
+      "subject": "Task 5: selectedNodeIds State in App.js",
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "subject": "Task 6: Shift+Click and isMultiSelected in Canvas + GraphNode",
+      "status": "pending",
+      "blockedBy": [4]
+    },
+    {
+      "id": 6,
+      "subject": "Task 7: Selection Context Menu (Bulk Delete + Bulk Assign)",
+      "status": "pending",
+      "blockedBy": [0, 4]
+    },
+    {
+      "id": 7,
+      "subject": "Task 8: Full E2E Test Pass",
+      "status": "pending",
+      "blockedBy": [2, 3, 5, 6]
+    }
+  ],
+  "lastUpdated": "2026-04-19T00:00:00.000Z"
+}
