@@ -511,15 +511,13 @@ export default function Canvas({
 
   const collapsedCodeIds = useMemo(() => {
     const ids = new Set();
-    graphState.nodes.forEach(n => {
-      if (collapsedNodeIds.has(n.id)) {
-        graphState.edges.forEach(e => {
-          if (e.source !== n.id && e.target !== n.id) return;
-          const codeId = e.source === n.id ? e.target : e.source;
-          const codeNode = graphState.nodes.find(nd => nd.id === codeId);
-          if (codeNode?.type === 'code') ids.add(codeId);
-        });
-      }
+    collapsedNodeIds.forEach(collapsedId => {
+      graphState.edges.forEach(e => {
+        if (e.source !== collapsedId && e.target !== collapsedId) return;
+        const codeId = e.source === collapsedId ? e.target : e.source;
+        const codeNode = graphState.nodes.find(nd => nd.id === codeId);
+        if (codeNode?.type === 'code') ids.add(codeId);
+      });
     });
     return ids;
   }, [collapsedNodeIds, graphState.nodes, graphState.edges]);
@@ -696,7 +694,21 @@ export default function Canvas({
         }}
       >
         {/* All nodes rendered as GraphNode */}
-        {(graphState.nodes || []).map((node) => {
+        {(() => {
+          // Build collapsingPositionMap once outside the node loop
+          const collapsingPositionMap = new Map();
+          collapsedCodeIds.forEach(codeId => {
+            const parentEdge = graphState.edges.find(e => {
+              const otherId = e.source === codeId ? e.target : (e.target === codeId ? e.source : null);
+              return otherId != null && collapsedNodeIds.has(otherId);
+            });
+            if (parentEdge) {
+              const parentId = parentEdge.source === codeId ? parentEdge.target : parentEdge.source;
+              collapsingPositionMap.set(codeId, getNodePos(parentId));
+            }
+          });
+
+          return (graphState.nodes || []).map((node) => {
           const pos = getNodePos(node.id);
           const isConnecting = canvasState.connectingFrom?.nodeId === node.id;
           const isSelected = canvasState.hoveredNodeId === node.id && connectMode;
@@ -735,18 +747,7 @@ export default function Canvas({
 
           // Collapse props
           const isCollapsed = collapsedCodeIds.has(node.id);
-          let collapsingIntoPosition = null;
-          if (isCollapsed) {
-            const parentEdge = graphState.edges.find(e => {
-              const otherId = e.source === node.id ? e.target : (e.target === node.id ? e.source : null);
-              if (!otherId) return false;
-              return collapsedNodeIds.has(otherId);
-            });
-            if (parentEdge) {
-              const parentId = parentEdge.source === node.id ? parentEdge.target : parentEdge.source;
-              collapsingIntoPosition = getNodePos(parentId);
-            }
-          }
+          const collapsingIntoPosition = isCollapsed ? (collapsingPositionMap.get(node.id) ?? null) : null;
           const collapsedCodeCount = (node.type === 'theme' || node.type === 'subtheme')
             ? graphState.edges.filter(e => {
                 const otherId = e.source === node.id ? e.target : e.target === node.id ? e.source : null;
@@ -778,7 +779,8 @@ export default function Canvas({
               onPointerUp={(e) => handleNodePointerUp(node.id, e)}
             />
           );
-        })}
+          });
+        })()}
       </div>
 
       {/* Exit Focus pill */}
