@@ -6,24 +6,27 @@
  * Replaces ThemeNode.js and CodeNode.js.
  *
  * PROPS:
- *   node           {Object}   — node data from GraphContext
- *   position       {x, y}    — D3-managed screen position
- *   isSelected     {boolean}
- *   isConnecting   {boolean}
- *   connectMode    {boolean}
- *   focusThemeId   {string|null} — if set, dims nodes outside the focused cluster
- *   focusedNodeIds {Set<string>} — set of IDs in the focused cluster (or empty)
- *   onMouseEnter   {fn}
- *   onMouseLeave   {fn}
- *   onContextMenu  {fn}
- *   onClick        {fn}
- *   onPointerDown  {fn}
- *   onPointerMove  {fn}
- *   onPointerUp    {fn}
+ *   node                    {Object}        — node data from GraphContext
+ *   position                {x, y}          — D3-managed screen position
+ *   isSelected              {boolean}
+ *   isConnecting            {boolean}
+ *   connectMode             {boolean}
+ *   focusThemeId            {string|null}   — if set, dims nodes outside the focused cluster
+ *   focusedNodeIds          {Set<string>}   — set of IDs in the focused cluster (or empty)
+ *   isCollapsed             {boolean}       — true if this code node is hidden (parent collapsed)
+ *   collapsingIntoPosition  {{x,y}|null}    — world-coord position of the parent node to fly toward
+ *   collapsedCodeCount      {number}        — for subtheme nodes, number of codes collapsed into them
+ *   onMouseEnter            {fn}
+ *   onMouseLeave            {fn}
+ *   onContextMenu           {fn}
+ *   onClick                 {fn}
+ *   onPointerDown           {fn}
+ *   onPointerMove           {fn}
+ *   onPointerUp             {fn}
  */
 
 import React, { useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getNodeSize } from '../../utils/nodeUtils';
 import { springs } from '../../utils/motionConfig';
 
@@ -37,6 +40,9 @@ export default function GraphNode({
   focusedNodeIds = new Set(),
   searchActive = false,
   isSearchMatch = false,
+  isCollapsed = false,
+  collapsingIntoPosition = null,
+  collapsedCodeCount = 0,
   onMouseEnter = () => {},
   onMouseLeave = () => {},
   onContextMenu,
@@ -100,6 +106,18 @@ export default function GraphNode({
       opacity: [opacity, opacity * 0.8, opacity],
       transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
     },
+    collapsed: {
+      scale: 0,
+      opacity: 0,
+      x: collapsingIntoPosition ? collapsingIntoPosition.x - (position?.x ?? 0) : 0,
+      y: collapsingIntoPosition ? collapsingIntoPosition.y - (position?.y ?? 0) : 0,
+      transition: { type: 'spring', stiffness: 300, damping: 28 },
+    },
+    dot: {
+      scale: 0.18,
+      opacity: 0.6,
+      transition: { type: 'spring', stiffness: 280, damping: 25 },
+    },
   };
 
   // Border: theme/subtheme nodes get 3px solid black, code nodes 2px solid black
@@ -110,7 +128,11 @@ export default function GraphNode({
     <motion.div
       className={isTheme ? 'graph-node graph-node--theme' : isSubtheme ? 'graph-node graph-node--subtheme' : 'graph-node graph-node--code'}
       initial="initial"
-      animate={isConnecting ? 'connecting' : 'visible'}
+      animate={
+        isCollapsed   ? 'collapsed'  :
+        isConnecting  ? 'connecting' :
+        'visible'
+      }
       variants={variants}
       whileHover={{ scale: isTheme ? 1.06 : 1.08, transition: springs.hover }}
       whileTap={{ scale: 0.97 }}
@@ -191,6 +213,40 @@ export default function GraphNode({
           ✓
         </span>
       )}
+
+      {/* Collapsed-code count badge on subtheme */}
+      <AnimatePresence>
+        {isSubtheme && collapsedCodeCount > 0 && (
+          <motion.span
+            key="collapse-badge"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            aria-label={`${collapsedCodeCount} collapsed codes`}
+            style={{
+              position:        'absolute',
+              top:             -10,
+              right:           -10,
+              width:           22,
+              height:          22,
+              borderRadius:    '50%',
+              backgroundColor: 'white',
+              border:          '2px solid #0f0d0a',
+              display:         'flex',
+              alignItems:      'center',
+              justifyContent:  'center',
+              fontSize:        11,
+              fontWeight:      700,
+              color:           color,
+              lineHeight:      1,
+              pointerEvents:   'none',
+            }}
+          >
+            {collapsedCodeCount}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
