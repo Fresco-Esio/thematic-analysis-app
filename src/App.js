@@ -56,6 +56,18 @@ function AppInner() {
   // ── Focus view ──────────────────────────────────────────────────────────────
   const [focusThemeId, setFocusThemeId] = useState(null);
 
+  // ── Collapsed nodes ─────────────────────────────────────────────────────────
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState(new Set());
+
+  function toggleCollapse(nodeId) {
+    setCollapsedNodeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  }
+
   // ── Context menu ────────────────────────────────────────────────────────────
   const [ctxMenu, setCtxMenu] = useState({ visible: false, x: 0, y: 0, items: [] });
 
@@ -207,6 +219,7 @@ function AppInner() {
           }
         },
         { label: '⊙ Focus View', action: () => setFocusThemeId(id) },
+        { label: collapsedNodeIds.has(id) ? '⊞ Expand Codes' : '⊟ Collapse Codes', action: () => toggleCollapse(id) },
         { label: '✕ Delete Theme', action: () => {
             const connectedCount = edges.filter(e => e.target === id).length;
             const msg = connectedCount > 0
@@ -218,6 +231,7 @@ function AppInner() {
     } else if (type === 'subtheme') {
       items = [
         { label: '✏ Rename Subtheme', action: () => setSubthemeEditId(id) },
+        { label: collapsedNodeIds.has(id) ? '⊞ Expand Codes' : '⊟ Collapse Codes', action: () => toggleCollapse(id) },
         { label: '✕ Delete Subtheme', action: () => {
             const subthemeNode = nodes.find(n => n.id === id);
             if (window.confirm(`Delete subtheme "${subthemeNode?.label ?? 'this subtheme'}"?`))
@@ -287,6 +301,7 @@ function AppInner() {
           searchFilters={searchFilters}
           focusThemeId={focusThemeId}
           onExitFocus={() => setFocusThemeId(null)}
+          collapsedNodeIds={collapsedNodeIds}
         />
         <PhysicsPanel
           open={physicsOpen}
