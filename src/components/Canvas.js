@@ -754,7 +754,8 @@ export default function Canvas({
           const isCollapsed = collapsedCodeIds.has(node.id) && !dotCodeIds.has(node.id);
           const isDot = dotCodeIds.has(node.id);
           const collapsingIntoPosition = isCollapsed ? (collapsingPositionMap.get(node.id) ?? null) : null;
-          const collapsedCodeCount = (node.type === 'theme' || node.type === 'subtheme')
+          // Badge only shows on subthemes — only compute count for them
+          const collapsedCodeCount = node.type === 'subtheme'
             ? graphState.edges.filter(e => {
                 const otherId = e.source === node.id ? e.target : e.target === node.id ? e.source : null;
                 return otherId && collapsedCodeIds.has(otherId);
