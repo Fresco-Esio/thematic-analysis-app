@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { GraphProvider, useGraphDispatch, useGraph, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
+import { GraphProvider, useGraphDispatch, useGraph, useGraphHistory, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
 import { loadPhysicsParams } from './utils/forceSimulation';
 import { exportToPng, exportToPdf } from './utils/exportUtils';
 import Canvas       from './components/Canvas';
@@ -35,6 +35,7 @@ import EdgeRelationshipPanel from './components/EdgeRelationshipPanel';
 function AppInner() {
   const dispatch = useGraphDispatch();
   const { nodes, edges } = useGraph();
+  const { canUndo, canRedo, undo, redo } = useGraphHistory();
   const canvasRef = useRef(null);
   const fitViewFn = useRef(null);
   const alignTriggerRef = useRef(null);
@@ -286,6 +287,10 @@ function AppInner() {
         onTogglePhysics={() => setPhysicsOpen(o => !o)}
         onAlign={handleAlign}
         onClear={handleClear}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
         searchOpen={searchOpen}
         searchQuery={searchQuery}
         searchFilters={searchFilters}

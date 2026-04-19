@@ -19,7 +19,7 @@
 
 import React, { useRef, useEffect } from 'react';
 
-function TbBtn({ children, onClick, variant = 'secondary', active = false, ...rest }) {
+function TbBtn({ children, onClick, variant = 'secondary', active = false, disabled = false, ...rest }) {
   const base = 'px-4 py-2 font-bold text-base cursor-pointer transition-all border-2';
   const styles = {
     primary: 'bg-[#dc2626] text-white border-[#dc2626] hover:bg-[#b91c1c] shadow-[3px_3px_0_#0f0d0a]',
@@ -28,8 +28,9 @@ function TbBtn({ children, onClick, variant = 'secondary', active = false, ...re
       : 'bg-transparent text-white border-white hover:bg-white hover:text-[#0f0d0a]',
     danger: 'bg-transparent text-[#dc2626] border-[#dc2626] hover:bg-[#dc2626] hover:text-white',
   };
+  const disabledClass = disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : '';
   return (
-    <button className={`${base} ${styles[variant]}`} onClick={onClick} {...rest}>
+    <button className={`${base} ${styles[variant]} ${disabledClass}`} onClick={onClick} disabled={disabled} {...rest}>
       {children}
     </button>
   );
@@ -51,6 +52,10 @@ export default function Toolbar({
   onTogglePhysics,
   onAlign,
   onClear,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
   searchOpen,
   searchQuery,
   searchFilters,
@@ -90,6 +95,11 @@ export default function Toolbar({
       <TbBtn onClick={onZoomIn} aria-label="Zoom in">＋</TbBtn>
       <TbBtn onClick={onFitView}>⊞ Fit View</TbBtn>
       <TbBtn onClick={onAlign}>⊹ Align</TbBtn>
+
+      <div className="w-px h-6 bg-white/20 mx-1" />
+
+      <TbBtn onClick={onUndo} disabled={!canUndo} aria-label="Undo">⟲ Undo</TbBtn>
+      <TbBtn onClick={onRedo} disabled={!canRedo} aria-label="Redo">⟳ Redo</TbBtn>
 
       <div className="w-px h-6 bg-white/20 mx-1" />
 
