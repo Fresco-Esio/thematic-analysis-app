@@ -54,6 +54,8 @@ export default function SankeyView({ onEditCode, onImport }) {
   const [hover, setHover] = useState(null);              // probe object or null
   const [isolatedThemeId, setIsolatedThemeId] = useState(null);
   const [tooltip, setTooltip] = useState(null);          // { x, y, node } or null
+  const [includeSubthemes, setIncludeSubthemes] = useState(false);
+  const hasSubthemes = nodes.some(n => n.type === 'subtheme');
 
   // Fit the fixed-ratio figure inside the available panel space
   useEffect(() => {
@@ -79,8 +81,8 @@ export default function SankeyView({ onEditCode, onImport }) {
   }, [isolatedThemeId]);
 
   const data = useMemo(
-    () => buildSankeyData(nodes, edges, { includeSubthemes: false }),
-    [nodes, edges]
+    () => buildSankeyData(nodes, edges, { includeSubthemes }),
+    [nodes, edges, includeSubthemes]
   );
 
   const layout = useMemo(() => {
@@ -103,7 +105,12 @@ export default function SankeyView({ onEditCode, onImport }) {
     if (!layout) return [];
     return [...new Set(layout.nodes.map(n => Math.round(n.x0)))].sort((a, b) => a - b);
   }, [layout]);
-  const headerLabels = ['SOURCES', 'CODES', 'THEMES'];
+  // 4 rendered columns can only occur when subtheme routing is active; with the
+  // toggle off (or on but with no routed codes) the transform emits no subtheme
+  // nodes and the layout has 3 columns.
+  const headerLabels = columns.length === 4
+    ? ['SOURCES', 'CODES', 'SUBTHEMES', 'THEMES']
+    : ['SOURCES', 'CODES', 'THEMES'];
 
   const probe = hover ?? (isolatedThemeId ? { themeKey: isolatedThemeId } : null);
   const litNodeIds = useMemo(() => {
@@ -199,6 +206,7 @@ export default function SankeyView({ onEditCode, onImport }) {
             {/* node bars + labels */}
             {layout.nodes.map(n => {
               const clickable = n.kind === 'theme' || n.kind === 'code';
+              const warn = n.kind === 'theme' && data.warnings.has(n.id);
               const labelOnRight = n.x0 < FIG_W / 2;
               return (
                 <g
@@ -236,12 +244,28 @@ export default function SankeyView({ onEditCode, onImport }) {
                     fontWeight={n.kind === 'theme' ? 700 : 500}
                     fill="#0f0d0a"
                   >
-                    {n.label}
+                    {warn ? `⚠ ${n.label}` : n.label}
+                    {warn && <title>Grounded in a single source — consider whether this theme rests on one voice</title>}
                   </text>
                 </g>
               );
             })}
           </svg>
+
+          {/* optional subtheme column */}
+          {hasSubthemes && (
+            <button
+              onClick={() => setIncludeSubthemes(v => !v)}
+              aria-pressed={includeSubthemes}
+              className="absolute top-3 right-3 px-3 py-1.5 text-sm font-bold border-2 border-[#0f0d0a] cursor-pointer"
+              style={{
+                backgroundColor: includeSubthemes ? '#0f0d0a' : '#ffffff',
+                color: includeSubthemes ? '#ffffff' : '#0f0d0a',
+              }}
+            >
+              Subthemes: {includeSubthemes ? 'On' : 'Off'}
+            </button>
+          )}
 
           {/* exit flow isolation */}
           {isolatedThemeId && (
