@@ -529,3 +529,20 @@ test('22 — view switcher toggles between Graph and Wall', async ({ page }) => 
   await page.getByRole('button', { name: /Graph/ }).click();
   await expect(page.locator('.nodes-layer')).toBeVisible();
 });
+
+// ── 23. Wall card dragging ───────────────────────────────────────────────────
+
+test('23 — wall card drag persists position', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Code/i }).click();
+  await page.getByRole('button', { name: /Wall/ }).click();
+  const card = page.locator('[data-card-id]').first();
+  const box = await card.boundingBox();
+  await page.mouse.move(box.x + 20, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 220, box.y + 120, { steps: 8 });
+  await page.mouse.up();
+  await page.reload();
+  await page.getByRole('button', { name: /Wall/ }).click();
+  const after = await page.locator('[data-card-id]').first().boundingBox();
+  expect(Math.abs(after.x - (box.x + 200))).toBeLessThan(40);
+});

@@ -143,7 +143,7 @@ function AppInner() {
     const { x: cx, y: cy } = viewportCenterWorld();
     dispatch({
       type: 'ADD_NODE',
-      node: { id: makeId('theme'), type: 'theme', label: 'New Theme', color: '#6366f1', x: cx, y: cy },
+      node: { id: makeId('theme'), type: 'theme', label: 'New Theme', color: '#6366f1', x: cx, y: cy, wallPosition: { x: cx, y: cy } },
     });
   }
 
@@ -151,7 +151,7 @@ function AppInner() {
     const { x: cx, y: cy } = viewportCenterWorld();
     dispatch({
       type: 'ADD_NODE',
-      node: { id: makeId('code'), type: 'code', label: 'New Code', quote: '', source: '', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy },
+      node: { id: makeId('code'), type: 'code', label: 'New Code', quote: '', source: '', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy, wallPosition: { x: cx, y: cy } },
     });
   }
 
@@ -159,7 +159,7 @@ function AppInner() {
     const { x: cx, y: cy } = viewportCenterWorld();
     dispatch({
       type: 'ADD_NODE',
-      node: { id: makeId('subtheme'), type: 'subtheme', label: 'New Subtheme', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy },
+      node: { id: makeId('subtheme'), type: 'subtheme', label: 'New Subtheme', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy, wallPosition: { x: cx, y: cy } },
     });
   }
 
@@ -307,6 +307,7 @@ function AppInner() {
               id: subId, type: 'subtheme', label: 'New Subtheme',
               primaryThemeId: id, color: themeNode?.color ?? UNASSIGNED_COLOR,
               x: world.x + 160, y: world.y + 80,
+              wallPosition: { x: world.x + 160, y: world.y + 80 },
             }});
             dispatch({ type: 'ADD_EDGE', edge: { id: makeId('edge'), source: subId, target: id }});
             setSubthemeEditId(subId);
