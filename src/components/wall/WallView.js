@@ -44,7 +44,7 @@ function resolveWallPosition(node) {
   return null;
 }
 
-export default function WallView({ onContextMenu }) {
+export default function WallView({ onContextMenu, onCropRectReady }) {
   const { nodes, edges, regions } = useGraph();
   const dispatch = useGraphDispatch();
 
@@ -88,6 +88,21 @@ export default function WallView({ onContextMenu }) {
       surface.on('.zoom', null);
     };
   }, []);
+
+  // Expose a world-rect → element-relative crop converter for region export
+  // (App feeds the result to exportRegionToPng against #canvas-export-target)
+  useEffect(() => {
+    onCropRectReady?.((rect, pad = 24) => {
+      const { x: tx, y: ty, k } = zoomTransformRef.current;
+      return {
+        x: TRAY_W + tx + (rect.x - pad) * k,
+        y: ty + (rect.y - pad) * k,
+        w: (rect.w + pad * 2) * k,
+        h: (rect.h + pad * 2) * k,
+      };
+    });
+    return () => onCropRectReady?.(null);
+  }, [onCropRectReady]);
 
   // ── Card drag handlers ────────────────────────────────────────────────────
   function clientToWorld(clientX, clientY) {

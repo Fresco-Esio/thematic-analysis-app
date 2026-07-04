@@ -37,6 +37,29 @@ export async function exportToPng(element, filename = 'thematic-map') {
 }
 
 /**
+ * Capture one region of the canvas element as a PNG figure and trigger
+ * download. `cropRect` is in element-relative screen pixels — the Wall
+ * converts a region's world rect through its zoom transform (plus padding)
+ * before calling this.
+ * @param {HTMLElement} element — the canvas wrapper div
+ * @param {{x:number, y:number, w:number, h:number}} cropRect
+ * @param {string} filename — default 'theme-figure'
+ */
+export async function exportRegionToPng(element, cropRect, filename = 'theme-figure') {
+  if (!element) throw new Error('exportRegionToPng: canvas element is null');
+  const canvas = await html2canvas(element, {
+    backgroundColor: '#f0ebe3', scale: 2, useCORS: true, logging: false,
+    x: cropRect.x, y: cropRect.y, width: cropRect.w, height: cropRect.h,
+  });
+  const link = document.createElement('a');
+  link.download = `${filename}-${datestamp()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+/**
  * Capture the canvas element and export as a PDF.
  * Adds a footer with the app name and date.
  * @param {HTMLElement} element — the canvas wrapper div

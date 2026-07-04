@@ -21,7 +21,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GraphProvider, useGraphDispatch, useGraph, useGraphHistory, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
 import { loadPhysicsParams } from './utils/forceSimulation';
 import { getMatchedNodeIds } from './utils/nodeUtils';
-import { exportToPng, exportToPdf } from './utils/exportUtils';
+import { exportToPng, exportToPdf, exportRegionToPng } from './utils/exportUtils';
 import Canvas       from './components/Canvas';
 import WallView     from './components/wall/WallView';
 import Toolbar      from './components/Toolbar';
@@ -43,6 +43,7 @@ function AppInner() {
   const alignTriggerRef = useRef(null);
   const zoomByFn = useRef(null);
   const screenToWorldRef = useRef(null);
+  const wallCropRef = useRef(null); // WallView's world-rect → crop-rect converter
 
   // World coords of the visible viewport center — new nodes land where the
   // user is looking, even when panned/zoomed away from the origin.
@@ -320,6 +321,19 @@ function AppInner() {
           }
         },
         { label: '⊙ Focus View', action: () => handleSetFocusTheme(id) },
+        // Export one theme's region as a standalone figure (Wall view only)
+        ...(view === 'wall' && (regions || []).some(r => r.themeId === id) ? [{
+          label: '⬇ Export Region as PNG',
+          action: async () => {
+            const region = regions.find(r => r.themeId === id);
+            const themeNode = nodes.find(n => n.id === id);
+            const el = document.getElementById('canvas-export-target');
+            if (region && el && wallCropRef.current) {
+              const slug = (themeNode?.label || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'theme';
+              await exportRegionToPng(el, wallCropRef.current(region.rect), slug);
+            }
+          },
+        }] : []),
         // Recreate a deleted Wall region for this theme
         ...(!(regions || []).some(r => r.themeId === id) ? [{
           label: '▦ Show on Wall',
@@ -441,7 +455,10 @@ function AppInner() {
             onScreenToWorldReady={(fn) => { screenToWorldRef.current = fn; }}
           />
         ) : (
-          <WallView onContextMenu={handleContextMenu} />
+          <WallView
+            onContextMenu={handleContextMenu}
+            onCropRectReady={(fn) => { wallCropRef.current = fn; }}
+          />
         )}
         <PhysicsPanel
           open={physicsOpen}
