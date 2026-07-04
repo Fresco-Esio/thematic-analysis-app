@@ -518,3 +518,14 @@ test('13 — graph state persists across page reload', async ({ page }) => {
     expect(s.themes).toBe(1);
   }).toPass({ timeout: 5000 });
 });
+
+// ── 22. View switcher ────────────────────────────────────────────────────────
+
+test('22 — view switcher toggles between Graph and Wall', async ({ page }) => {
+  await expect(page.getByRole('button', { name: /Graph/ })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: /Wall/ }).click();
+  await expect(page.getByRole('button', { name: /Wall/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: /Connect/ })).toBeDisabled();
+  await page.getByRole('button', { name: /Graph/ }).click();
+  await expect(page.locator('.nodes-layer')).toBeVisible();
+});

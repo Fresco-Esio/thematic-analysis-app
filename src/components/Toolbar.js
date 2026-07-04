@@ -4,6 +4,8 @@
  * Top toolbar with all primary actions.
  *
  * PROPS:
+ *   view            {'wall'|'graph'}  — active view; graph-only actions disable off-view
+ *   onViewChange    {fn(view)}
  *   connectMode     {boolean}
  *   physicsOpen     {boolean}
  *   onImport        {fn}
@@ -23,7 +25,9 @@
 
 import React, { useRef, useEffect } from 'react';
 
-function TbBtn({ children, onClick, variant = 'secondary', active = false, disabled = false, ...rest }) {
+function TbBtn({ children, onClick, variant = 'secondary', active = false, disabled = false, graphOnly = false, view = 'graph', ...rest }) {
+  // graphOnly actions disable (not disappear) when another view is active
+  const isDisabled = disabled || (graphOnly && view !== 'graph');
   const base = 'px-4 py-2 font-bold text-base cursor-pointer transition-all border-2';
   const styles = {
     primary: 'bg-[#dc2626] text-white border-[#dc2626] hover:bg-[#b91c1c] shadow-[3px_3px_0_#0f0d0a]',
@@ -33,15 +37,17 @@ function TbBtn({ children, onClick, variant = 'secondary', active = false, disab
     // #ef4444 (not #dc2626) for text on the near-black bar — meets 4.5:1
     danger: 'bg-transparent text-[#ef4444] border-[#ef4444] hover:bg-[#dc2626] hover:border-[#dc2626] hover:text-white',
   };
-  const disabledClass = disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : '';
+  const disabledClass = isDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : '';
   return (
-    <button className={`${base} ${styles[variant]} ${disabledClass}`} onClick={onClick} disabled={disabled} {...rest}>
+    <button className={`${base} ${styles[variant]} ${disabledClass}`} onClick={onClick} disabled={isDisabled} {...rest}>
       {children}
     </button>
   );
 }
 
 export default function Toolbar({
+  view = 'graph',
+  onViewChange,
   connectMode,
   physicsOpen,
   onImport,
@@ -86,6 +92,22 @@ export default function Toolbar({
         Thematic<span style={{ color: '#dc2626' }}>Map</span>
       </span>
 
+      {/* View switcher — only views that exist are rendered */}
+      <div role="group" aria-label="View" className="flex mr-2 border-2 border-white">
+        {[['wall', '▦ Wall'], ['graph', '☄ Graph']].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => onViewChange(key)}
+            aria-pressed={view === key}
+            className={`px-3 py-2 font-bold text-base cursor-pointer ${
+              view === key ? 'bg-white text-[#0f0d0a]' : 'bg-transparent text-white hover:bg-white/20'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <TbBtn variant="primary" onClick={onImport}>⬆ Import</TbBtn>
       <TbBtn variant="primary" onClick={onAddTheme}>＋ Add Theme</TbBtn>
       <TbBtn variant="primary" onClick={onAddCode}>＋ Add Code</TbBtn>
@@ -93,13 +115,13 @@ export default function Toolbar({
 
       <div className="w-px h-6 bg-white/20 mx-1" />
 
-      <TbBtn onClick={onToggleConnect} active={connectMode} aria-pressed={connectMode}>
+      <TbBtn onClick={onToggleConnect} active={connectMode} aria-pressed={connectMode} graphOnly view={view}>
         {connectMode ? '✕ Cancel Connect' : '↔ Connect'}
       </TbBtn>
-      <TbBtn onClick={onZoomOut} aria-label="Zoom out">−</TbBtn>
-      <TbBtn onClick={onZoomIn} aria-label="Zoom in">＋</TbBtn>
-      <TbBtn onClick={onFitView}>⊞ Fit View</TbBtn>
-      <TbBtn onClick={onAlign}>⊹ Align</TbBtn>
+      <TbBtn onClick={onZoomOut} aria-label="Zoom out" graphOnly view={view}>−</TbBtn>
+      <TbBtn onClick={onZoomIn} aria-label="Zoom in" graphOnly view={view}>＋</TbBtn>
+      <TbBtn onClick={onFitView} graphOnly view={view}>⊞ Fit View</TbBtn>
+      <TbBtn onClick={onAlign} graphOnly view={view}>⊹ Align</TbBtn>
 
       <div className="w-px h-6 bg-white/20 mx-1" />
 
@@ -162,7 +184,7 @@ export default function Toolbar({
         )}
       </div>
 
-      <TbBtn onClick={onTogglePhysics} active={physicsOpen} aria-pressed={physicsOpen}>⚙ Physics</TbBtn>
+      <TbBtn onClick={onTogglePhysics} active={physicsOpen} aria-pressed={physicsOpen} graphOnly view={view}>⚙ Physics</TbBtn>
       <TbBtn variant="danger" onClick={onClear}>✕ Clear</TbBtn>
     </div>
   );

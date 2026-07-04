@@ -23,6 +23,7 @@ import { loadPhysicsParams } from './utils/forceSimulation';
 import { getMatchedNodeIds } from './utils/nodeUtils';
 import { exportToPng, exportToPdf } from './utils/exportUtils';
 import Canvas       from './components/Canvas';
+import WallView     from './components/wall/WallView';
 import Toolbar      from './components/Toolbar';
 import PhysicsPanel from './components/PhysicsPanel';
 import ImportModal  from './components/modals/ImportModal';
@@ -56,6 +57,9 @@ function AppInner() {
   }
 
   // ── UI state ────────────────────────────────────────────────────────────────
+  // Default stays 'graph' in Phase 1; flipping to 'wall' is a deliberate
+  // post-validation follow-up (design doc §1).
+  const [view,          setView]          = useState('graph'); // 'wall' | 'graph'
   const [connectMode,   setConnectMode]   = useState(false);
   const [physicsOpen,   setPhysicsOpen]   = useState(false);
   const [physicsParams, setPhysicsParams] = useState(loadPhysicsParams);
@@ -367,6 +371,8 @@ function AppInner() {
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-canvas)', color: 'var(--text-primary)' }}>
 
       <Toolbar
+        view={view}
+        onViewChange={setView}
         connectMode={connectMode}
         physicsOpen={physicsOpen}
         onImport={() => setImportOpen(true)}
@@ -396,23 +402,27 @@ function AppInner() {
       />
 
       <div className="flex flex-1 overflow-hidden" ref={canvasRef}>
-        <Canvas
-          connectMode={connectMode}
-          physicsParams={physicsParams}
-          onContextMenu={handleContextMenu}
-          onFitReady={(fn) => { fitViewFn.current = fn; }}
-          onAlignReady={(fn) => { alignTriggerRef.current = fn; }}
-          onZoomReady={(fn) => { zoomByFn.current = fn; }}
-          searchQuery={searchQuery}
-          searchFilters={searchFilters}
-          focusThemeId={focusThemeId}
-          onExitFocus={() => setFocusThemeId(null)}
-          collapsedNodeIds={collapsedNodeIds}
-          selectedNodeIds={selectedNodeIds}
-          onShiftClickNode={handleShiftClickNode}
-          onClearSelection={() => setSelectedNodeIds(new Set())}
-          onScreenToWorldReady={(fn) => { screenToWorldRef.current = fn; }}
-        />
+        {view === 'graph' ? (
+          <Canvas
+            connectMode={connectMode}
+            physicsParams={physicsParams}
+            onContextMenu={handleContextMenu}
+            onFitReady={(fn) => { fitViewFn.current = fn; }}
+            onAlignReady={(fn) => { alignTriggerRef.current = fn; }}
+            onZoomReady={(fn) => { zoomByFn.current = fn; }}
+            searchQuery={searchQuery}
+            searchFilters={searchFilters}
+            focusThemeId={focusThemeId}
+            onExitFocus={() => setFocusThemeId(null)}
+            collapsedNodeIds={collapsedNodeIds}
+            selectedNodeIds={selectedNodeIds}
+            onShiftClickNode={handleShiftClickNode}
+            onClearSelection={() => setSelectedNodeIds(new Set())}
+            onScreenToWorldReady={(fn) => { screenToWorldRef.current = fn; }}
+          />
+        ) : (
+          <WallView onContextMenu={handleContextMenu} />
+        )}
         <PhysicsPanel
           open={physicsOpen}
           params={physicsParams}
