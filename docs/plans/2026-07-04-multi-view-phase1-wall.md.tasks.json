@@ -1,17 +1,17 @@
 {
   "planPath": "docs/plans/2026-07-04-multi-view-phase1-wall.md",
   "tasks": [
-    {"id": 1, "subject": "Task 1: v2 storage with migration and regions in state", "status": "pending"},
-    {"id": 2, "subject": "Task 2: View state + switcher in Toolbar", "status": "pending", "blockedBy": [1]},
-    {"id": 3, "subject": "Task 3: WallView surface — cards, margin tray, pan/zoom", "status": "pending", "blockedBy": [2]},
-    {"id": 4, "subject": "Task 4: Card dragging with authored positions", "status": "pending", "blockedBy": [3]},
-    {"id": 5, "subject": "Task 5: Theme regions — render, move, resize, create", "status": "pending", "blockedBy": [3]},
-    {"id": 6, "subject": "Task 6: Assignment by placement + contested marks", "status": "pending", "blockedBy": [4, 5]},
-    {"id": 7, "subject": "Task 7: Card piles (stacking)", "status": "pending", "blockedBy": [4]},
-    {"id": 8, "subject": "Task 8: String edges", "status": "pending", "blockedBy": [5]},
-    {"id": 9, "subject": "Task 9: Keyboard support", "status": "pending", "blockedBy": [6]},
-    {"id": 10, "subject": "Task 10: Region-framed export", "status": "pending", "blockedBy": [5]},
-    {"id": 11, "subject": "Task 11: Full regression + docs", "status": "pending", "blockedBy": [6, 7, 8, 9, 10]}
+    {"id": 1, "subject": "Task 1: v2 storage with migration and regions in state", "status": "completed"},
+    {"id": 2, "subject": "Task 2: View state + switcher in Toolbar", "status": "completed", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: WallView surface — cards, margin tray, pan/zoom", "status": "completed", "blockedBy": [2]},
+    {"id": 4, "subject": "Task 4: Card dragging with authored positions", "status": "completed", "blockedBy": [3]},
+    {"id": 5, "subject": "Task 5: Theme regions — render, move, resize, create", "status": "completed", "blockedBy": [3]},
+    {"id": 6, "subject": "Task 6: Assignment by placement + contested marks", "status": "completed", "blockedBy": [4, 5]},
+    {"id": 7, "subject": "Task 7: Card piles (stacking)", "status": "completed", "blockedBy": [4]},
+    {"id": 8, "subject": "Task 8: String edges", "status": "completed", "blockedBy": [5]},
+    {"id": 9, "subject": "Task 9: Keyboard support", "status": "completed", "blockedBy": [6]},
+    {"id": 10, "subject": "Task 10: Region-framed export", "status": "completed", "blockedBy": [5]},
+    {"id": 11, "subject": "Task 11: Full regression + docs", "status": "completed", "blockedBy": [6, 7, 8, 9, 10]}
   ],
-  "lastUpdated": "2026-07-04T00:00:00Z"
+  "lastUpdated": "2026-07-04T12:00:00Z"
 }
