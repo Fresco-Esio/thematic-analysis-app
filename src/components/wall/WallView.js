@@ -26,6 +26,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
+import { cardRect, assignmentAfterDrop, isContested } from '../../utils/wallGeometry';
 import WallCard from './WallCard';
 import WallRegion from './WallRegion';
 
@@ -161,6 +162,16 @@ export default function WallView({ onContextMenu }) {
     if (!dropPos) return; // tray drag released before reaching the wall
 
     dispatch({ type: 'UPDATE_NODE', id: node.id, changes: { wallPosition: dropPos } });
+
+    // Placement IS assignment: an unambiguous drop into a region assigns the
+    // code to that theme; a drop onto empty wall unassigns. BULK_ASSIGN_THEME
+    // already sets primaryThemeId + color and creates the edge — reuse it.
+    const decision = assignmentAfterDrop(cardRect(dropPos), regions || [], node.primaryThemeId);
+    if (decision.assignTo) {
+      dispatch({ type: 'BULK_ASSIGN_THEME', nodeIds: [node.id], targetId: decision.assignTo });
+    } else if (decision.unassign) {
+      dispatch({ type: 'UNASSIGN_CODE', id: node.id });
+    }
   }
 
   // ── Derived render sets ───────────────────────────────────────────────────
@@ -264,6 +275,7 @@ export default function WallView({ onContextMenu }) {
               key={node.id}
               node={node}
               position={position}
+              contested={isContested(cardRect(position), regions || [])}
               onPointerDown={(e) => handleCardPointerDown(node, e)}
               onPointerMove={(e) => handleCardPointerMove(node, e)}
               onPointerUp={(e) => handleCardPointerUp(node, e)}

@@ -546,3 +546,36 @@ test('23 — wall card drag persists position', async ({ page }) => {
   const after = await page.locator('[data-card-id]').first().boundingBox();
   expect(Math.abs(after.x - (box.x + 200))).toBeLessThan(40);
 });
+
+// ── 24. Assignment by placement ──────────────────────────────────────────────
+
+test('24 — placing a card in a region assigns its theme; empty wall unassigns', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Theme/i }).click();
+  await page.getByRole('button', { name: /Add Code/i }).click();
+  expect((await statusCounts(page)).unassigned).toBe(1);
+
+  await page.getByRole('button', { name: /Wall/ }).click();
+  const region = page.locator('[data-region-id]').first();
+  const rb = await region.boundingBox();
+  const card = page.locator('[data-card-id]').first();
+  const cb = await card.boundingBox();
+
+  // Drop the card in the region's center → assigned
+  await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(rb.x + rb.width / 2, rb.y + rb.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await expect(async () => {
+    expect((await statusCounts(page)).unassigned).toBe(0);
+  }).toPass({ timeout: 3000 });
+
+  // Drag it out to empty wall → unassigned again
+  const cb2 = await card.boundingBox();
+  await page.mouse.move(cb2.x + cb2.width / 2, cb2.y + cb2.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(1150, 640, { steps: 10 });
+  await page.mouse.up();
+  await expect(async () => {
+    expect((await statusCounts(page)).unassigned).toBe(1);
+  }).toPass({ timeout: 3000 });
+});
