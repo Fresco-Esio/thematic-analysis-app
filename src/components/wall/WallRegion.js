@@ -90,6 +90,9 @@ export default function WallRegion({ region, color, label, zoomK, onCommitRect, 
           position: 'absolute',
           top: -3,
           left: -3,
+          // Above the string SVG layer — a string tip near the plate slides
+          // underneath the theme name instead of covering it
+          zIndex: 1,
           maxWidth: 'calc(100% + 6px)',
           padding: '4px 12px',
           backgroundColor: color,

@@ -49,39 +49,24 @@ export function isContested(card, regions) {
   return overlapping.length >= 2 || (overlapping.length === 1 && fullyIn.length === 0);
 }
 
-/** Approximate footprint of a region's label plate (top-left corner) */
-const PLATE = { w: 150, h: 28 };
-
 /**
- * Where a string should attach to a region: the point on the region's border
- * nearest to `from`, nudged off the label plate zone (top-left corner) so
- * strings never overlap the theme name.
+ * Where a string should attach to a region: cast a ray from the region's
+ * center toward `from` and stop at the border. Unlike a nearest-edge rule,
+ * this moves CONTINUOUSLY around the perimeter as the card moves — no
+ * snapping between edges at corner crossings. (The label plate stays legible
+ * via z-order: plates render above the string layer.)
  */
 export function stringAnchorOnRegion(rect, from) {
-  const right = rect.x + rect.w;
-  const bottom = rect.y + rect.h;
-
-  // Nearest point on the perimeter
-  let x = Math.min(Math.max(from.x, rect.x), right);
-  let y = Math.min(Math.max(from.y, rect.y), bottom);
-  const inside = from.x > rect.x && from.x < right && from.y > rect.y && from.y < bottom;
-  if (inside) {
-    // Push to the closest edge
-    const dLeft = from.x - rect.x, dRight = right - from.x;
-    const dTop = from.y - rect.y, dBottom = bottom - from.y;
-    const m = Math.min(dLeft, dRight, dTop, dBottom);
-    if (m === dLeft) x = rect.x;
-    else if (m === dRight) x = right;
-    else if (m === dTop) y = rect.y;
-    else y = bottom;
-  }
-
-  // Steer clear of the label plate: top edge → move right of the plate;
-  // left edge → move below it
-  if (y === rect.y && x < rect.x + PLATE.w) x = Math.min(rect.x + PLATE.w, right);
-  if (x === rect.x && y < rect.y + PLATE.h) y = Math.min(rect.y + PLATE.h, bottom);
-
-  return { x, y };
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  let dx = from.x - cx;
+  let dy = from.y - cy;
+  if (dx === 0 && dy === 0) dy = -1; // degenerate: aim at the top edge
+  // Scale the direction vector until it first hits the border
+  const sx = dx !== 0 ? (rect.w / 2) / Math.abs(dx) : Infinity;
+  const sy = dy !== 0 ? (rect.h / 2) / Math.abs(dy) : Infinity;
+  const s = Math.min(sx, sy);
+  return { x: cx + dx * s, y: cy + dy * s };
 }
 
 /**

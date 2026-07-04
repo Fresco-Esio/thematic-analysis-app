@@ -123,31 +123,41 @@ describe('clusterPiles', () => {
   });
 });
 
-describe('stringAnchorOnRegion', () => {
-  const rect = { x: 100, y: 100, w: 440, h: 320 }; // right edge 540, bottom 420
+describe('stringAnchorOnRegion (ray from region center — continuous, no edge snapping)', () => {
+  const rect = { x: 100, y: 100, w: 440, h: 320 }; // center (320,260), right edge 540, bottom 420
 
-  test('card to the right → anchors on the right edge at card height', () => {
-    expect(stringAnchorOnRegion(rect, { x: 800, y: 250 })).toEqual({ x: 540, y: 250 });
+  test('card directly right of center → anchors on the right edge at center height', () => {
+    expect(stringAnchorOnRegion(rect, { x: 800, y: 260 })).toEqual({ x: 540, y: 260 });
   });
 
-  test('card below → anchors on the bottom edge', () => {
-    expect(stringAnchorOnRegion(rect, { x: 300, y: 700 })).toEqual({ x: 300, y: 420 });
+  test('card directly below center → anchors on the bottom edge', () => {
+    expect(stringAnchorOnRegion(rect, { x: 320, y: 700 })).toEqual({ x: 320, y: 420 });
   });
 
-  test('card above the label plate zone → anchor pushed right, off the plate', () => {
-    const a = stringAnchorOnRegion(rect, { x: 110, y: 0 });
-    expect(a.y).toBe(100); // top edge
-    expect(a.x).toBeGreaterThanOrEqual(100 + 150); // clear of the plate width
+  test('anchor always lies on the region border', () => {
+    const positions = [
+      { x: 0, y: 0 }, { x: 600, y: 50 }, { x: -200, y: 400 },
+      { x: 320, y: 260.5 }, { x: 539, y: 419 }, // inside points too
+    ];
+    positions.forEach(p => {
+      const a = stringAnchorOnRegion(rect, p);
+      const onVertical = (Math.abs(a.x - 100) < 1e-9 || Math.abs(a.x - 540) < 1e-9) && a.y >= 100 && a.y <= 420;
+      const onHorizontal = (Math.abs(a.y - 100) < 1e-9 || Math.abs(a.y - 420) < 1e-9) && a.x >= 100 && a.x <= 540;
+      expect(onVertical || onHorizontal).toBe(true);
+    });
   });
 
-  test('card left of region near the top → anchor pushed below the plate height', () => {
-    const a = stringAnchorOnRegion(rect, { x: 0, y: 105 });
-    expect(a.x).toBe(100); // left edge
-    expect(a.y).toBeGreaterThanOrEqual(100 + 28); // clear of the plate height
+  test('moving a card across a corner diagonal moves the anchor continuously (no snap)', () => {
+    // The top-right corner (540,100) lies on the ray direction (220,-160) from
+    // the center. Sample card positions just either side of that diagonal.
+    const a1 = stringAnchorOnRegion(rect, { x: 760, y: -60 + 4 });  // just below the diagonal
+    const a2 = stringAnchorOnRegion(rect, { x: 760, y: -60 - 4 });  // just above it
+    const jump = Math.hypot(a2.x - a1.x, a2.y - a1.y);
+    expect(jump).toBeLessThan(10); // old nearest-edge rule jumped by >100px here
   });
 
-  test('card inside the region → nearest border point, not the interior', () => {
-    const a = stringAnchorOnRegion(rect, { x: 520, y: 260 }); // near right edge
-    expect(a).toEqual({ x: 540, y: 260 });
+  test('degenerate card-at-center still returns a border point', () => {
+    const a = stringAnchorOnRegion(rect, { x: 320, y: 260 });
+    expect(a.y === 100 || a.y === 420 || a.x === 100 || a.x === 540).toBe(true);
   });
 });
