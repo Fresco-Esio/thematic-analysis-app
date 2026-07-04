@@ -27,6 +27,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
 import { cardRect, assignmentAfterDrop, isContested, clusterPiles } from '../../utils/wallGeometry';
+import { getEdgeDashArray, getEdgeStrokeWidth } from '../../utils/edgeTypes';
 import WallCard from './WallCard';
 import WallRegion from './WallRegion';
 
@@ -44,7 +45,7 @@ function resolveWallPosition(node) {
 }
 
 export default function WallView({ onContextMenu }) {
-  const { nodes, regions } = useGraph();
+  const { nodes, edges, regions } = useGraph();
   const dispatch = useGraphDispatch();
 
   const surfaceRef = useRef(null);
@@ -210,6 +211,27 @@ export default function WallView({ onContextMenu }) {
     });
   });
 
+  // Final on-screen position per card (drag + fan offsets applied) — shared
+  // by the card layer and the string-edge endpoints
+  const cardPosById = new Map();
+  wallCards.forEach(({ node, position }) => {
+    const meta = pileMeta.get(node.id);
+    cardPosById.set(node.id, meta?.fanOffset
+      ? { x: position.x + meta.fanOffset.x, y: position.y + meta.fanOffset.y }
+      : position);
+  });
+
+  /** String endpoint: card center for codes, region label plate for themes */
+  function edgeEndpoint(nodeId) {
+    if (cardPosById.has(nodeId)) return cardPosById.get(nodeId);
+    const node = nodes.find(n => n.id === nodeId);
+    if (node?.type === 'theme') {
+      const region = (regions || []).find(r => r.themeId === nodeId);
+      if (region) return { x: region.rect.x + 24, y: region.rect.y + 10 };
+    }
+    return null; // tray code, missing region, or subtheme — no string
+  }
+
   function handleCardContextMenu(node, e) {
     e.preventDefault();
     e.stopPropagation();
@@ -282,7 +304,7 @@ export default function WallView({ onContextMenu }) {
           ref={layerRef}
           style={{ position: 'absolute', top: 0, left: 0, transformOrigin: '0 0' }}
         >
-          {/* Theme regions — beneath the cards */}
+          {/* Theme regions — bottom layer */}
           {(regions || []).map(region => {
             const theme = nodes.find(n => n.id === region.themeId);
             if (!theme) return null;
@@ -298,6 +320,71 @@ export default function WallView({ onContextMenu }) {
               />
             );
           })}
+
+          {/* String edges — over the regions, under the cards */}
+          <svg
+            data-testid="wall-strings"
+            style={{ position: 'absolute', top: 0, left: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}
+          >
+            {edges.map(edge => {
+              const p1 = edgeEndpoint(edge.source);
+              const p2 = edgeEndpoint(edge.target);
+              if (!p1 || !p2) return null;
+              const targetNode = nodes.find(n => n.id === edge.target);
+              const strokeColor = edge.color || targetNode?.color || '#64748b';
+              // Control point sags below the chord like a pinned string
+              const midX = (p1.x + p2.x) / 2;
+              const midY = (p1.y + p2.y) / 2 + Math.hypot(p2.x - p1.x, p2.y - p1.y) * 0.08;
+              // Curve point at t=0.5 — where the label sits
+              const labelX = (p1.x + 2 * midX + p2.x) / 4;
+              const labelY = (p1.y + 2 * midY + p2.y) / 4;
+              const labelChars = (edge.label || '').length;
+              const labelWidth = labelChars * 6.5 + 8;
+              return (
+                <g key={edge.id}>
+                  <path
+                    d={`M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`}
+                    stroke={strokeColor}
+                    strokeWidth={getEdgeStrokeWidth(edge.relationType)}
+                    strokeDasharray={getEdgeDashArray(edge.relationType) || undefined}
+                    fill="none"
+                    strokeLinecap="round"
+                    opacity={0.55}
+                  />
+                  {/* Wide transparent hit path → relationship menu */}
+                  <path
+                    d={`M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`}
+                    stroke="transparent"
+                    strokeWidth={16}
+                    fill="none"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                    style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); onContextMenu?.('edge', edge.id, e.clientX, e.clientY); }}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu?.('edge', edge.id, e.clientX, e.clientY); }}
+                  />
+                  {edge.label && (
+                    <g style={{ pointerEvents: 'none' }}>
+                      <rect x={labelX - labelWidth / 2} y={labelY - 8} width={labelWidth} height={16} fill="#f0ebe3" />
+                      <text
+                        x={labelX}
+                        y={labelY + 1}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill={strokeColor}
+                        fontSize={10}
+                        fontWeight={700}
+                        fontFamily='"Bricolage Grotesque", sans-serif'
+                      >
+                        {edge.label}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+
           {wallCards.map(({ node, position }) => {
             const meta = pileMeta.get(node.id);
             const renderPos = meta?.fanOffset
