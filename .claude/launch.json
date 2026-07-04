@@ -7,6 +7,13 @@
       "runtimeArgs": ["start"],
       "port": 3002,
       "env": { "PORT": "3002", "BROWSER": "none" }
+    },
+    {
+      "name": "sankey-worktree",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start", "--prefix", "D:\\thematic-analysis-app\\.claude\\worktrees\\zealous-colden-1e28e2"],
+      "port": 3101,
+      "env": { "PORT": "3101", "BROWSER": "none" }
     }
   ]
 }

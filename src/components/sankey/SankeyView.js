@@ -15,11 +15,14 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { sankey, sankeyLinkHorizontal, sankeyJustify } from 'd3-sankey';
 import { useGraph } from '../../context/GraphContext';
 import { buildSankeyData } from '../../utils/sankeyTransform';
 
 const FIG_W = 1280;
 const FIG_H = 800; // 16:10 — fixed figure aspect ratio for export
+const MARGIN = { top: 64, right: 210, bottom: 28, left: 210 };
+const RIBBON_OPACITY = 0.8; // design §5: theme palette at ~80% opacity
 
 export default function SankeyView({ onEditCode, onImport }) {
   const { nodes, edges } = useGraph();
@@ -45,6 +48,28 @@ export default function SankeyView({ onEditCode, onImport }) {
     () => buildSankeyData(nodes, edges, { includeSubthemes: false }),
     [nodes, edges]
   );
+
+  const layout = useMemo(() => {
+    if (data.isEmpty) return null;
+    const generator = sankey()
+      .nodeId(d => d.id)
+      .nodeWidth(18)
+      .nodePadding(14)
+      .nodeAlign(sankeyJustify)
+      .extent([[MARGIN.left, MARGIN.top], [FIG_W - MARGIN.right, FIG_H - MARGIN.bottom]]);
+    // d3-sankey mutates its input — feed it copies, keep `data` pure
+    return generator({
+      nodes: data.nodes.map(n => ({ ...n })),
+      links: data.links.map(l => ({ ...l })),
+    });
+  }, [data]);
+
+  // Unique node x-positions, sorted → header placement per rendered column
+  const columns = useMemo(() => {
+    if (!layout) return [];
+    return [...new Set(layout.nodes.map(n => Math.round(n.x0)))].sort((a, b) => a - b);
+  }, [layout]);
+  const headerLabels = ['SOURCES', 'CODES', 'THEMES'];
 
   return (
     <div
@@ -73,7 +98,68 @@ export default function SankeyView({ onEditCode, onImport }) {
           className="relative bg-white border-2 border-[#0f0d0a] shadow-[8px_8px_0_#0f0d0a]"
           style={{ width: frame.w, height: frame.h }}
         >
-          <svg width="100%" height="100%" viewBox={`0 0 ${FIG_W} ${FIG_H}`} preserveAspectRatio="xMidYMid meet" />
+          <svg width="100%" height="100%" viewBox={`0 0 ${FIG_W} ${FIG_H}`} preserveAspectRatio="xMidYMid meet">
+            {/* column headers */}
+            {columns.map((x, i) => headerLabels[i] && (
+              <text
+                key={x}
+                x={x + 9}
+                y={34}
+                textAnchor="middle"
+                fontSize="15"
+                fontWeight="700"
+                letterSpacing="0.1em"
+                fill="#6b6560"
+              >
+                {headerLabels[i]}
+              </text>
+            ))}
+
+            {/* ribbons */}
+            <g fill="none">
+              {layout.links.map((l, i) => (
+                <path
+                  key={`${l.codeId}-${l.source.id}-${l.target.id}-${i}`}
+                  d={sankeyLinkHorizontal()(l)}
+                  stroke={l.color}
+                  strokeWidth={Math.max(1, l.width)}
+                  strokeOpacity={RIBBON_OPACITY}
+                  role="img"
+                  aria-label={`${l.source.label} flows into ${l.target.label}`}
+                  style={{ transition: 'stroke-opacity 0.15s' }}
+                />
+              ))}
+            </g>
+
+            {/* node bars + labels */}
+            {layout.nodes.map(n => {
+              const labelOnRight = n.x0 < FIG_W / 2;
+              return (
+                <g key={n.id}>
+                  <rect
+                    x={n.x0}
+                    y={n.y0}
+                    width={n.x1 - n.x0}
+                    height={Math.max(1, n.y1 - n.y0)}
+                    fill={n.kind === 'source' ? '#0f0d0a' : n.color}
+                    stroke="#0f0d0a"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={labelOnRight ? n.x1 + 8 : n.x0 - 8}
+                    y={(n.y0 + n.y1) / 2}
+                    dy="0.35em"
+                    textAnchor={labelOnRight ? 'start' : 'end'}
+                    fontSize="14"
+                    fontWeight={n.kind === 'theme' ? 700 : 500}
+                    fill="#0f0d0a"
+                  >
+                    {n.label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
       )}
     </div>
