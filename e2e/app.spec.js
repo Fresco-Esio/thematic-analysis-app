@@ -611,3 +611,29 @@ test('26 — Sankey view shows empty-state guidance when no codes exist', async 
   await page.getByRole('button', { name: /Import Data/ }).click();
   await expect(page.getByText('Import Data', { exact: true })).toBeVisible(); // ImportModal title
 });
+
+// ── 28. Sankey interactions ─────────────────────────────────────────────────
+
+test('28 — Sankey code click opens edit modal; theme click isolates flow', async ({ page }) => {
+  // Seed: theme + code, connected (same flow as test 4)
+  await page.getByRole('button', { name: /Add Theme/i }).click();
+  await page.getByRole('button', { name: /Add Code/i }).click();
+  await page.getByRole('button', { name: /Connect/i }).click();
+  const codeNode  = page.locator('.nodes-layer > div').filter({ hasNotText: /✓/ }).first();
+  const themeNode = page.locator('[role="button"][aria-label*="theme"]').first();
+  await codeNode.click({ force: true });
+  await themeNode.click({ force: true });
+  await page.getByRole('button', { name: /Cancel Connect/i }).click();
+
+  await page.getByRole('button', { name: /Sankey/ }).click();
+
+  // Theme isolation toggles on and off via the pill
+  await page.getByRole('button', { name: /Isolate theme/ }).click();
+  await expect(page.getByRole('button', { name: /Show All Themes/ })).toBeVisible();
+  await page.getByRole('button', { name: /Show All Themes/ }).click();
+  await expect(page.getByRole('button', { name: /Show All Themes/ })).not.toBeVisible();
+
+  // Code click opens the edit modal
+  await page.getByRole('button', { name: /Edit code/ }).click();
+  await expect(page.getByText('Edit Code Node')).toBeVisible();
+});

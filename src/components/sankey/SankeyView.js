@@ -18,16 +18,42 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { sankey, sankeyLinkHorizontal, sankeyJustify } from 'd3-sankey';
 import { useGraph } from '../../context/GraphContext';
 import { buildSankeyData } from '../../utils/sankeyTransform';
+import QuoteTooltip from '../QuoteTooltip';
 
 const FIG_W = 1280;
 const FIG_H = 800; // 16:10 — fixed figure aspect ratio for export
 const MARGIN = { top: 64, right: 210, bottom: 28, left: 210 };
 const RIBBON_OPACITY = 0.8; // design §5: theme palette at ~80% opacity
 
+/** Does this link belong to the hovered/isolated selection? */
+function linkMatches(l, probe) {
+  if (!probe) return false;
+  if (probe.codeId) return l.codeId === probe.codeId;
+  if (probe.subId) return l.subId === probe.subId;
+  if (probe.themeKey) return l.themeKey === probe.themeKey;
+  if (probe.sourceLabel) return l.sourceLabel === probe.sourceLabel;
+  return false;
+}
+
+/** What a hover on this node should highlight */
+function hoverProbeFor(n) {
+  switch (n.kind) {
+    case 'code':       return { codeId: n.id };
+    case 'subtheme':   return { subId: n.id };
+    case 'theme':      return { themeKey: n.id };
+    case 'unassigned': return { themeKey: n.id }; // links into the sink carry themeKey = UNASSIGNED_ID
+    case 'source':     return { sourceLabel: n.label };
+    default:           return null;
+  }
+}
+
 export default function SankeyView({ onEditCode, onImport }) {
   const { nodes, edges } = useGraph();
   const wrapRef = useRef(null);
   const [frame, setFrame] = useState({ w: 960, h: 600 });
+  const [hover, setHover] = useState(null);              // probe object or null
+  const [isolatedThemeId, setIsolatedThemeId] = useState(null);
+  const [tooltip, setTooltip] = useState(null);          // { x, y, node } or null
 
   // Fit the fixed-ratio figure inside the available panel space
   useEffect(() => {
@@ -43,6 +69,14 @@ export default function SankeyView({ onEditCode, onImport }) {
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
+
+  // Escape exits flow isolation
+  useEffect(() => {
+    if (!isolatedThemeId) return;
+    function onKey(e) { if (e.key === 'Escape') setIsolatedThemeId(null); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isolatedThemeId]);
 
   const data = useMemo(
     () => buildSankeyData(nodes, edges, { includeSubthemes: false }),
@@ -70,6 +104,37 @@ export default function SankeyView({ onEditCode, onImport }) {
     return [...new Set(layout.nodes.map(n => Math.round(n.x0)))].sort((a, b) => a - b);
   }, [layout]);
   const headerLabels = ['SOURCES', 'CODES', 'THEMES'];
+
+  const probe = hover ?? (isolatedThemeId ? { themeKey: isolatedThemeId } : null);
+  const litNodeIds = useMemo(() => {
+    if (!layout || !probe) return null;
+    const lit = new Set();
+    for (const l of layout.links) {
+      if (linkMatches(l, probe)) { lit.add(l.source.id); lit.add(l.target.id); }
+    }
+    return lit;
+  }, [layout, probe]);
+
+  function linkOpacity(l) {
+    if (isolatedThemeId && l.themeKey !== isolatedThemeId) return 0.06;
+    if (hover) return linkMatches(l, hover) ? 0.95 : 0.12;
+    return RIBBON_OPACITY;
+  }
+
+  function nodeOpacity(n) {
+    if (!litNodeIds) return 1;
+    return litNodeIds.has(n.id) ? 1 : 0.25;
+  }
+
+  function handleNodeClick(n) {
+    if (n.kind === 'theme') setIsolatedThemeId(prev => (prev === n.id ? null : n.id));
+    else if (n.kind === 'code') onEditCode?.(n.id);
+  }
+
+  function handleCodeMouseMove(n, e) {
+    const rect = wrapRef.current.getBoundingClientRect();
+    setTooltip({ x: e.clientX - rect.left, y: e.clientY - rect.top, node: n.ref });
+  }
 
   return (
     <div
@@ -123,7 +188,7 @@ export default function SankeyView({ onEditCode, onImport }) {
                   d={sankeyLinkHorizontal()(l)}
                   stroke={l.color}
                   strokeWidth={Math.max(1, l.width)}
-                  strokeOpacity={RIBBON_OPACITY}
+                  strokeOpacity={linkOpacity(l)}
                   role="img"
                   aria-label={`${l.source.label} flows into ${l.target.label}`}
                   style={{ transition: 'stroke-opacity 0.15s' }}
@@ -133,9 +198,18 @@ export default function SankeyView({ onEditCode, onImport }) {
 
             {/* node bars + labels */}
             {layout.nodes.map(n => {
+              const clickable = n.kind === 'theme' || n.kind === 'code';
               const labelOnRight = n.x0 < FIG_W / 2;
               return (
-                <g key={n.id}>
+                <g
+                  key={n.id}
+                  opacity={nodeOpacity(n)}
+                  onMouseEnter={() => setHover(hoverProbeFor(n))}
+                  onMouseLeave={() => { setHover(null); setTooltip(null); }}
+                  onMouseMove={n.kind === 'code' ? (e) => handleCodeMouseMove(n, e) : undefined}
+                  onClick={clickable ? () => handleNodeClick(n) : undefined}
+                  style={{ cursor: clickable ? 'pointer' : 'default', transition: 'opacity 0.15s' }}
+                >
                   <rect
                     x={n.x0}
                     y={n.y0}
@@ -144,6 +218,14 @@ export default function SankeyView({ onEditCode, onImport }) {
                     fill={n.kind === 'source' ? '#0f0d0a' : n.color}
                     stroke="#0f0d0a"
                     strokeWidth="1"
+                    role={clickable ? 'button' : undefined}
+                    aria-label={
+                      n.kind === 'code' ? `Edit code ${n.label}`
+                        : n.kind === 'theme' ? `Isolate theme ${n.label}`
+                        : undefined
+                    }
+                    tabIndex={clickable ? 0 : undefined}
+                    onKeyDown={clickable ? (e) => { if (e.key === 'Enter') handleNodeClick(n); } : undefined}
                   />
                   <text
                     x={labelOnRight ? n.x1 + 8 : n.x0 - 8}
@@ -160,8 +242,29 @@ export default function SankeyView({ onEditCode, onImport }) {
               );
             })}
           </svg>
+
+          {/* exit flow isolation */}
+          {isolatedThemeId && (
+            <button
+              onClick={() => setIsolatedThemeId(null)}
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 font-bold text-base border-2 border-[#0f0d0a] bg-[#0f0d0a] text-white cursor-pointer"
+            >
+              ✕ Show All Themes
+            </button>
+          )}
         </div>
       )}
+
+      {/* reused quote tooltip on code hover (positions relative to the wrap div) */}
+      <QuoteTooltip
+        visible={!!tooltip}
+        x={tooltip?.x ?? 0}
+        y={tooltip?.y ?? 0}
+        code={tooltip?.node?.label ?? ''}
+        quote={tooltip?.node?.quote ?? ''}
+        source={tooltip?.node?.source ?? ''}
+        color={tooltip?.node?.color ?? '#0f0d0a'}
+      />
     </div>
   );
 }
