@@ -12,6 +12,7 @@ export const CARD_W = 176;
 export const CARD_H = 96;
 
 export default function WallCard({ node, position, contested = false, inTray = false,
+  rotate = 0, pileCount = 0, onPileClick,
   onPointerDown, onPointerMove, onPointerUp, onContextMenu, onKeyDown }) {
   const quoteLine = (node.quote || '').split('\n')[0];
   return (
@@ -20,7 +21,7 @@ export default function WallCard({ node, position, contested = false, inTray = f
       tabIndex={0}
       data-node-type="code"
       data-card-id={node.id}
-      aria-label={`${node.label || 'Unnamed'} — code card${contested ? ', contested between regions' : ''}`}
+      aria-label={`${node.label || 'Unnamed'} — code card${contested ? ', contested between regions' : ''}${pileCount > 1 ? `, pile of ${pileCount}` : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -38,6 +39,7 @@ export default function WallCard({ node, position, contested = false, inTray = f
         padding: '8px 10px', cursor: 'grab',
         touchAction: 'none', userSelect: 'none',
         display: 'flex', flexDirection: 'column', gap: 4,
+        transform: rotate ? `rotate(${rotate}deg)` : undefined,
       }}
     >
       <span style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: '#0f0d0a' }}>
@@ -60,6 +62,37 @@ export default function WallCard({ node, position, contested = false, inTray = f
           width: 18, height: 18, backgroundColor: '#dc2626', color: 'white',
           fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center',
           justifyContent: 'center', border: '2px solid #0f0d0a' }}>?</span>
+      )}
+      {pileCount > 1 && (
+        <span
+          role="button"
+          tabIndex={0}
+          data-pile-badge={node.id}
+          aria-label={`Fan out pile of ${pileCount} cards`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onPileClick?.(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onPileClick?.(); } }}
+          style={{
+            position:        'absolute',
+            top:             -10,
+            right:           -10,
+            width:           22,
+            height:          22,
+            borderRadius:    '50%',
+            backgroundColor: 'white',
+            border:          '2px solid #0f0d0a',
+            display:         'flex',
+            alignItems:      'center',
+            justifyContent:  'center',
+            fontSize:        11,
+            fontWeight:      800,
+            color:           '#0f0d0a',
+            cursor:          'pointer',
+            lineHeight:      1,
+          }}
+        >
+          {pileCount}
+        </span>
       )}
     </div>
   );

@@ -26,7 +26,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
-import { cardRect, assignmentAfterDrop, isContested } from '../../utils/wallGeometry';
+import { cardRect, assignmentAfterDrop, isContested, clusterPiles } from '../../utils/wallGeometry';
 import WallCard from './WallCard';
 import WallRegion from './WallRegion';
 
@@ -56,6 +56,8 @@ export default function WallView({ onContextMenu }) {
   const dragStateRef = useRef(null);
   // Live positions during a drag (id → world {x, y}); cleared on release
   const [dragPositions, setDragPositions] = useState(() => new Map());
+  // Ids of the pile currently fanned out (cleared on next wall click)
+  const [fannedIds, setFannedIds] = useState(null);
 
   // ── Pan/zoom (d3.zoom on the surface div — no simulation, no tick loop) ──
   useEffect(() => {
@@ -91,11 +93,13 @@ export default function WallView({ onContextMenu }) {
     return { x: (clientX - rect.left - tx) / k, y: (clientY - rect.top - ty) / k };
   }
 
-  function handleCardPointerDown(node, e) {
+  function handleCardPointerDown(node, e, renderPos) {
     if (e.button !== 0) return;
     e.stopPropagation();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* synthetic/lost pointer */ }
-    const startPos = resolveWallPosition(node);
+    // renderPos (e.g. a fanned pile member's offset spot) is where the user
+    // actually grabbed the card — offset from there, not the stored position
+    const startPos = renderPos ?? resolveWallPosition(node);
     const startWorld = clientToWorld(e.clientX, e.clientY);
     dragStateRef.current = {
       nodeId: node.id,
@@ -186,6 +190,26 @@ export default function WallView({ onContextMenu }) {
     ? { node: nodes.find(n => n.id === dragStateRef.current.nodeId), position: dragPositions.get(dragStateRef.current.nodeId) }
     : null;
 
+  // ── Piles — derived, never stored. Cards stacked within 28px cluster; the
+  // top card carries a count badge that fans the pile out for grabbing.
+  // The actively dragged card is excluded so passing over a pile is inert.
+  const pileMeta = new Map(); // id → { size, isTop, rotate, fanOffset, ids }
+  const pileables = wallCards.filter(c => !dragPositions.has(c.node.id));
+  clusterPiles(pileables.map(c => ({ id: c.node.id, x: c.position.x, y: c.position.y }))).forEach(ids => {
+    if (ids.length < 2) return;
+    const fanned = !!fannedIds && ids.some(id => fannedIds.includes(id));
+    ids.forEach((id, i) => {
+      const isTop = i === ids.length - 1;
+      pileMeta.set(id, {
+        size: ids.length,
+        isTop,
+        rotate: fanned || isTop ? 0 : ((i % 3) - 1) * 2.5,
+        fanOffset: fanned ? { x: i * 24, y: i * 24 } : null,
+        ids,
+      });
+    });
+  });
+
   function handleCardContextMenu(node, e) {
     e.preventDefault();
     e.stopPropagation();
@@ -248,6 +272,10 @@ export default function WallView({ onContextMenu }) {
       <div
         ref={surfaceRef}
         data-testid="wall-surface"
+        onClick={(e) => {
+          // Next wall click collapses any fanned pile
+          if (fannedIds && !e.target.closest('[data-card-id]')) setFannedIds(null);
+        }}
         style={{ position: 'relative', flex: 1, overflow: 'hidden', cursor: 'grab' }}
       >
         <div
@@ -270,18 +298,27 @@ export default function WallView({ onContextMenu }) {
               />
             );
           })}
-          {wallCards.map(({ node, position }) => (
-            <WallCard
-              key={node.id}
-              node={node}
-              position={position}
-              contested={isContested(cardRect(position), regions || [])}
-              onPointerDown={(e) => handleCardPointerDown(node, e)}
-              onPointerMove={(e) => handleCardPointerMove(node, e)}
-              onPointerUp={(e) => handleCardPointerUp(node, e)}
-              onContextMenu={(e) => handleCardContextMenu(node, e)}
-            />
-          ))}
+          {wallCards.map(({ node, position }) => {
+            const meta = pileMeta.get(node.id);
+            const renderPos = meta?.fanOffset
+              ? { x: position.x + meta.fanOffset.x, y: position.y + meta.fanOffset.y }
+              : position;
+            return (
+              <WallCard
+                key={node.id}
+                node={node}
+                position={renderPos}
+                contested={isContested(cardRect(renderPos), regions || [])}
+                rotate={meta?.rotate || 0}
+                pileCount={meta && meta.isTop && !meta.fanOffset ? meta.size : 0}
+                onPileClick={() => setFannedIds(meta.ids)}
+                onPointerDown={(e) => handleCardPointerDown(node, e, renderPos)}
+                onPointerMove={(e) => handleCardPointerMove(node, e)}
+                onPointerUp={(e) => handleCardPointerUp(node, e)}
+                onContextMenu={(e) => handleCardContextMenu(node, e)}
+              />
+            );
+          })}
           {ghost && (
             <div style={{ pointerEvents: 'none', opacity: 0.85 }}>
               <WallCard node={ghost.node} position={ghost.position} />

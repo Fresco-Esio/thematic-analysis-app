@@ -48,3 +48,30 @@ export function isContested(card, regions) {
   const fullyIn = regions.filter(r => containment(card, r.rect).fully);
   return overlapping.length >= 2 || (overlapping.length === 1 && fullyIn.length === 0);
 }
+
+/**
+ * Group cards into piles by center proximity (single-link: a–b and b–c within
+ * threshold chains all three, even if a–c is not). Piles are derived at
+ * render time — never stored. Returns arrays of card ids.
+ */
+export function clusterPiles(cards, threshold = 28) {
+  const n = cards.length;
+  const parent = Array.from({ length: n }, (_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const union = (a, b) => {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent[rb] = ra;
+  };
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (Math.hypot(cards[i].x - cards[j].x, cards[i].y - cards[j].y) <= threshold) union(i, j);
+    }
+  }
+  const groups = new Map();
+  cards.forEach((c, i) => {
+    const root = find(i);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(c.id);
+  });
+  return [...groups.values()];
+}

@@ -1,4 +1,4 @@
-import { cardRect, containment, assignmentAfterDrop, isContested } from './wallGeometry';
+import { cardRect, containment, assignmentAfterDrop, isContested, clusterPiles } from './wallGeometry';
 
 describe('cardRect', () => {
   test('centers the rect on the position with default card size', () => {
@@ -92,5 +92,33 @@ describe('isContested', () => {
 
   test('on empty wall → not contested', () => {
     expect(isContested(card(2000, 2000), regions)).toBe(false);
+  });
+});
+
+describe('clusterPiles', () => {
+  test('two far-apart cards → two piles of one', () => {
+    const piles = clusterPiles([{ id: 'a', x: 0, y: 0 }, { id: 'b', x: 500, y: 0 }], 28);
+    expect(piles).toHaveLength(2);
+    expect(piles.map(p => p.length)).toEqual([1, 1]);
+  });
+
+  test('three cards chained within threshold → one pile of three (single-link)', () => {
+    // a–b and b–c are within 28px; a–c is not — chaining still joins them
+    const piles = clusterPiles([
+      { id: 'a', x: 0, y: 0 },
+      { id: 'b', x: 20, y: 0 },
+      { id: 'c', x: 40, y: 0 },
+    ], 28);
+    expect(piles).toHaveLength(1);
+    expect([...piles[0]].sort()).toEqual(['a', 'b', 'c']);
+  });
+
+  test('exactly at threshold counts as stacked', () => {
+    const piles = clusterPiles([{ id: 'a', x: 0, y: 0 }, { id: 'b', x: 28, y: 0 }], 28);
+    expect(piles).toHaveLength(1);
+  });
+
+  test('empty input → no piles', () => {
+    expect(clusterPiles([], 28)).toEqual([]);
   });
 });
