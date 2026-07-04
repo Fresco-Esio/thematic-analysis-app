@@ -4,8 +4,9 @@
  * Central state store for the thematic analysis graph.
  *
  * STATE SHAPE:
- *   nodes  — array of { id, type, label, x, y, ...typeSpecificFields }
- *   edges  — array of { id, source, target }
+ *   nodes   — array of { id, type, label, x, y, wallPosition?, ...typeSpecificFields }
+ *   edges   — array of { id, source, target }
+ *   regions — array of { id, themeId, rect: { x, y, w, h } } (Wall view theme areas)
  *
  * NODE TYPES:
  *   "theme"    — { id, type:"theme",    label, color, x, y }
@@ -20,7 +21,11 @@
  *   ADD_EDGE      { edge: Edge }
  *   DELETE_EDGE   { id }
  *   UPDATE_EDGE   { id, changes: Partial<Edge> }
- *   SET_GRAPH     { nodes, edges }            — full replace (used by localStorage restore)
+ *   ADD_REGION    { region }                  — add a Wall theme region (no-op on dup id)
+ *   UPDATE_REGION { id, changes }             — rect-only changes are not undoable
+ *   DELETE_REGION { id }
+ *   UNASSIGN_CODE { id }                      — clear primaryThemeId + color + theme edge atomically
+ *   SET_GRAPH     { nodes, edges, regions? }  — full replace (used by localStorage restore)
  *   CLEAR         {}                          — wipe everything
  */
 
@@ -49,13 +54,40 @@ export const THEME_PALETTE = [
 /** Gray color for unassigned code nodes */
 export const UNASSIGNED_COLOR = '#6b7280';
 
-const STORAGE_KEY = 'thematic_analysis_graph_v1';
+const STORAGE_KEY_V1 = 'thematic_analysis_graph_v1';
+const STORAGE_KEY    = 'thematic_analysis_graph_v2';
+
+/** Default region size seeded around a theme's last physics position */
+const SEED_REGION = { w: 440, h: 320 };
+
+/**
+ * Pure v1 → v2 migration. Exported for tests.
+ * v2 adds `wallPosition` per node (seeded from physics x/y) and a `regions`
+ * array with one region per theme. The v1 key is never overwritten, so
+ * rolling back to a v1 build loses nothing.
+ */
+export function migrateV1ToV2(v1) {
+  const nodes = v1.nodes.map(n =>
+    (typeof n.x === 'number' && typeof n.y === 'number')
+      ? { ...n, wallPosition: { x: n.x, y: n.y } }
+      : n
+  );
+  const regions = v1.nodes
+    .filter(n => n.type === 'theme' && typeof n.x === 'number')
+    .map(t => ({
+      id: `region-${t.id}`,
+      themeId: t.id,
+      rect: { x: t.x - SEED_REGION.w / 2, y: t.y - SEED_REGION.h / 2, ...SEED_REGION },
+    }));
+  return { nodes, edges: v1.edges, regions };
+}
 
 // ── Initial state ─────────────────────────────────────────────────────────────
 
 const initialState = {
   nodes: [],
   edges: [],
+  regions: [],
 };
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
@@ -101,8 +133,12 @@ export function graphReducer(state, action) {
 
       // Remove node and all edges that reference it.
       // If a theme is deleted, any code that uses it as its primary theme
-      // must be returned to the unassigned state.
+      // must be returned to the unassigned state, and its wall region removed.
       return {
+        ...state,
+        regions: isThemeNode
+          ? (state.regions || []).filter(r => r.themeId !== action.id)
+          : state.regions,
         nodes: state.nodes
           .filter(n => n.id !== action.id)
           .map(n => {
@@ -120,6 +156,8 @@ export function graphReducer(state, action) {
     case 'DELETE_NODES': {
       const idSet = new Set(action.ids);
       return {
+        ...state,
+        regions: (state.regions || []).filter(r => !idSet.has(r.themeId)),
         nodes: state.nodes
           .filter(n => !idSet.has(n.id))
           .map(n => {
@@ -161,7 +199,7 @@ export function graphReducer(state, action) {
         }
       }
 
-      return { nodes: updatedNodes, edges: [...state.edges, ...newEdges] };
+      return { ...state, nodes: updatedNodes, edges: [...state.edges, ...newEdges] };
     }
 
     case 'ADD_EDGE': {
@@ -192,6 +230,7 @@ export function graphReducer(state, action) {
       }
 
       return {
+        ...state,
         nodes: updatedNodes,
         edges: [...state.edges, action.edge],
       };
@@ -236,7 +275,7 @@ export function graphReducer(state, action) {
         }
       }
 
-      return { nodes: updatedNodes, edges: remainingEdges };
+      return { ...state, nodes: updatedNodes, edges: remainingEdges };
     }
 
     case 'UPDATE_EDGE': {
@@ -250,11 +289,40 @@ export function graphReducer(state, action) {
       };
     }
 
+    case 'ADD_REGION': {
+      if (state.regions.some(r => r.id === action.region.id)) return state;
+      return { ...state, regions: [...state.regions, action.region] };
+    }
+
+    case 'UPDATE_REGION': {
+      if (!state.regions.some(r => r.id === action.id)) return state;
+      return {
+        ...state,
+        regions: state.regions.map(r => r.id === action.id ? { ...r, ...action.changes } : r),
+      };
+    }
+
+    case 'DELETE_REGION':
+      return { ...state, regions: state.regions.filter(r => r.id !== action.id) };
+
+    case 'UNASSIGN_CODE': {
+      const code = state.nodes.find(n => n.id === action.id);
+      if (!code || !code.primaryThemeId) return state;
+      const themeId = code.primaryThemeId;
+      return {
+        ...state,
+        nodes: state.nodes.map(n =>
+          n.id === action.id ? { ...n, primaryThemeId: null, color: UNASSIGNED_COLOR } : n
+        ),
+        edges: state.edges.filter(e => !(e.source === action.id && e.target === themeId)),
+      };
+    }
+
     case 'SET_GRAPH':
-      return { nodes: action.nodes, edges: action.edges };
+      return { nodes: action.nodes, edges: action.edges, regions: action.regions ?? [] };
 
     case 'CLEAR':
-      return { nodes: [], edges: [] };
+      return { nodes: [], edges: [], regions: [] };
 
     default:
       return state;
@@ -263,13 +331,17 @@ export function graphReducer(state, action) {
 
 // ── History helpers ───────────────────────────────────────────────────────────
 
-const POSITION_ONLY_KEYS = new Set(['x', 'y']);
+const POSITION_ONLY_KEYS = new Set(['x', 'y', 'wallPosition']);
 
 function isUndoable(action) {
   if (action.type === 'SET_GRAPH') return false;
   if (action.type === 'UPDATE_NODE') {
     const keys = Object.keys(action.changes || {});
     return keys.some(k => !POSITION_ONLY_KEYS.has(k));
+  }
+  if (action.type === 'UPDATE_REGION') {
+    const keys = Object.keys(action.changes || {});
+    return keys.some(k => k !== 'rect'); // moving/resizing a region isn't undoable
   }
   return true;
 }
@@ -328,11 +400,21 @@ export function GraphProvider({ children }) {
   // overwrites localStorage with an empty state.
   const [state, dispatch] = useReducer(historyReducer, null, () => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const savedV2 = localStorage.getItem(STORAGE_KEY);
+      if (savedV2) {
+        const parsed = JSON.parse(savedV2);
         if (parsed.nodes && parsed.edges) {
-          return { past: [], present: { nodes: parsed.nodes, edges: parsed.edges }, future: [] };
+          // `{ regions: [], ...parsed }` — v2 saves written before regions existed still load
+          return { past: [], present: { regions: [], ...parsed }, future: [] };
+        }
+      }
+      // First run on v2: migrate from v1 if present. The v1 key is never
+      // overwritten — rollback to a v1 build keeps working.
+      const savedV1 = localStorage.getItem(STORAGE_KEY_V1);
+      if (savedV1) {
+        const parsed = JSON.parse(savedV1);
+        if (parsed.nodes && parsed.edges) {
+          return { past: [], present: migrateV1ToV2(parsed), future: [] };
         }
       }
     } catch (e) {

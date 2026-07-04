@@ -501,7 +501,7 @@ test('13 — graph state persists across page reload', async ({ page }) => {
 
   // Wait until the save useEffect has flushed to localStorage
   await page.waitForFunction(() => {
-    const raw = localStorage.getItem('thematic_analysis_graph_v1');
+    const raw = localStorage.getItem('thematic_analysis_graph_v2');
     if (!raw) return false;
     const data = JSON.parse(raw);
     return data.nodes && data.nodes.length >= 2;

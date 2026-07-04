@@ -1,4 +1,4 @@
-import { graphReducer, UNASSIGNED_COLOR } from './GraphContext';
+import { graphReducer, UNASSIGNED_COLOR, migrateV1ToV2 } from './GraphContext';
 
 describe('graphReducer', () => {
   test('deleting a theme unassigns connected primary code nodes and removes attached edges', () => {
@@ -214,4 +214,68 @@ test('ADD_EDGE to a theme still assigns primaryThemeId directly', () => {
   const c1 = next.nodes.find(n => n.id === 'c1');
   expect(c1.primaryThemeId).toBe('t1');
   expect(c1.color).toBe('#4f46e5');
+});
+
+describe('v1 → v2 migration', () => {
+  test('seeds wallPosition from physics x/y and a region per theme', () => {
+    const v1 = {
+      nodes: [
+        { id: 't1', type: 'theme', label: 'Theme 1', color: '#4f46e5', x: 500, y: 300 },
+        { id: 'c1', type: 'code', label: 'Code 1', quote: 'q', source: 's', primaryThemeId: 't1', color: '#4f46e5', x: 620, y: 340 },
+      ],
+      edges: [{ id: 'e1', source: 'c1', target: 't1' }],
+    };
+    const v2 = migrateV1ToV2(v1);
+    expect(v2.nodes.find(n => n.id === 'c1').wallPosition).toEqual({ x: 620, y: 340 });
+    expect(v2.regions).toHaveLength(1);
+    expect(v2.regions[0]).toMatchObject({ themeId: 't1' });
+    expect(v2.regions[0].rect.w).toBeGreaterThan(0);
+    expect(v2.edges).toEqual(v1.edges); // untouched
+  });
+
+  test('nodes without x/y get no wallPosition (Wall places them in the margin)', () => {
+    const v2 = migrateV1ToV2({ nodes: [{ id: 'c1', type: 'code', label: 'C' }], edges: [] });
+    expect(v2.nodes[0].wallPosition).toBeUndefined();
+  });
+});
+
+describe('regions in reducer state', () => {
+  const regionState = {
+    nodes: [
+      { id: 't1', type: 'theme', label: 'T', color: '#4f46e5', x: 0, y: 0 },
+      { id: 'c1', type: 'code', label: 'C', primaryThemeId: 't1', color: '#4f46e5', x: 0, y: 0 },
+    ],
+    edges: [{ id: 'e1', source: 'c1', target: 't1' }],
+    regions: [{ id: 'region-t1', themeId: 't1', rect: { x: -220, y: -160, w: 440, h: 320 } }],
+  };
+
+  test('DELETE_NODE preserves regions of other themes and removes the deleted theme region', () => {
+    const next = graphReducer(regionState, { type: 'DELETE_NODE', id: 't1' });
+    expect(next.regions).toEqual([]); // cascade
+  });
+
+  test('DELETE_NODE of a code leaves regions untouched', () => {
+    const next = graphReducer(regionState, { type: 'DELETE_NODE', id: 'c1' });
+    expect(next.regions).toEqual(regionState.regions);
+  });
+
+  test('UPDATE_REGION changes rect; unknown id is a no-op', () => {
+    const next = graphReducer(regionState, {
+      type: 'UPDATE_REGION', id: 'region-t1', changes: { rect: { x: 0, y: 0, w: 100, h: 100 } },
+    });
+    expect(next.regions[0].rect).toEqual({ x: 0, y: 0, w: 100, h: 100 });
+    expect(graphReducer(regionState, { type: 'UPDATE_REGION', id: 'nope', changes: {} })).toBe(regionState);
+  });
+
+  test('UNASSIGN_CODE clears primaryThemeId, reverts color, and removes the theme edge atomically', () => {
+    const next = graphReducer(regionState, { type: 'UNASSIGN_CODE', id: 'c1' });
+    const c1 = next.nodes.find(n => n.id === 'c1');
+    expect(c1.primaryThemeId).toBeNull();
+    expect(c1.color).toBe(UNASSIGNED_COLOR);
+    expect(next.edges).toEqual([]);
+  });
+
+  test('CLEAR resets regions too', () => {
+    expect(graphReducer(regionState, { type: 'CLEAR' }).regions).toEqual([]);
+  });
 });
