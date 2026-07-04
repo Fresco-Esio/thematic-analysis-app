@@ -16,9 +16,9 @@ This is a **React-based visual workspace** for **Braun & Clarke Reflexive Themat
 
 ```bash
 npm start              # dev server on http://localhost:3000
-npm test               # Jest unit tests (4 tests, 2 suites) — watchAll=false for CI
+npm test               # Jest unit tests (54 tests, 4 suites) — watchAll=false for CI
 npm run build          # production bundle → build/
-npm run test:e2e       # Playwright E2E (13 tests, Chromium, auto-starts dev server)
+npm run test:e2e       # Playwright E2E (25 tests, Chromium, auto-starts dev server)
 npx playwright test --reporter=list   # verbose E2E output
 ```
 
@@ -55,17 +55,23 @@ src/
     QuoteTooltip.js             Floating tooltip on code hover (AnimatePresence fade)
     nodes/
       GraphNode.js              Unified node component — theme or code variant based on node.type
+    wall/
+      WallView.js               Research Wall view — tray, pan/zoom surface, card drag, piles, string edges
+      WallCard.js               Index-card rendering of a code node (contested badge, pile badge)
+      WallRegion.js             Theme territory rect — label-plate move, corner resize, one UPDATE_REGION per gesture
     modals/
       ImportModal.js            Two-step wizard: upload → preview → confirm; scrollable (max-h-[90vh])
       CodeEditModal.js          Edit code label, quote, source; role="dialog"; Escape closes
       ThemeEditModal.js         Edit theme name + color; cascades to codes; role="dialog"
   utils/
     importUtils.js              parseFile(), buildGraphFromRows(), generateTemplate()
-    exportUtils.js              exportToPng(), exportToPdf()
+    exportUtils.js              exportToPng(), exportToPdf(), exportRegionToPng()
     forceSimulation.js          createSimulation() factory; chainable alpha(val) and restart()
     nodeUtils.js                Node sizing constants and color helpers
+    wallGeometry.js             Pure Wall geometry — cardRect, containment, assignmentAfterDrop,
+                                isContested, clusterPiles, stringAnchorOnRegion
     motionConfig.js             Shared Framer Motion animation variants
-e2e/app.spec.js                 13 Playwright E2E tests
+e2e/app.spec.js                 25 Playwright E2E tests
 playwright.config.js            Chromium, headless, webServer auto-start on port 3000
 docs/samples/thematic-import-sample.csv   Sample import file
 ```
@@ -76,23 +82,31 @@ docs/samples/thematic-import-sample.csv   Sample import file
 
 ```js
 // GraphContext
-{ nodes: [], edges: [] }
+{ nodes: [], edges: [], regions: [] }
 
 // Node — theme
-{ id, type: 'theme', label, color, x, y }
+{ id, type: 'theme', label, color, x, y, wallPosition? }
 
 // Node — code
-{ id, type: 'code', label, quote, source, primaryThemeId, color, x, y }
+{ id, type: 'code', label, quote, source, primaryThemeId, color, x, y, wallPosition? }
 
 // Edge
 { id, source, target }
+
+// Region — a theme's territory on the Wall view
+{ id: 'region-<themeId>', themeId, rect: { x, y, w, h } }
 ```
 
-**Reducer actions:** `ADD_NODES` `ADD_NODE` `UPDATE_NODE` `DELETE_NODE` `ADD_EDGE` `DELETE_EDGE` `SET_GRAPH` `CLEAR`
+`wallPosition` (`{x, y}`) is the card's **authored** position on the Wall — independent of the physics `x`/`y`. Codes with neither `primaryThemeId` nor `wallPosition` sit in the Wall's UNSORTED tray.
+
+**Reducer actions:** `ADD_NODES` `ADD_NODE` `UPDATE_NODE` `DELETE_NODE` `DELETE_NODES` `BULK_ASSIGN_THEME` `ADD_EDGE` `DELETE_EDGE` `UPDATE_EDGE` `ADD_REGION` `UPDATE_REGION` `DELETE_REGION` `UNASSIGN_CODE` `SET_GRAPH` `CLEAR`
 
 **localStorage keys:**
-- `thematic_analysis_graph_v1` — graph state
+- `thematic_analysis_graph_v2` — graph state (current; includes `regions` + `wallPosition`)
+- `thematic_analysis_graph_v1` — legacy graph state; read once by `migrateV1ToV2()` and **never overwritten** (rollback safety)
 - `thematic_analysis_physics_v1` — physics params
+
+**v1 → v2 migration** (`migrateV1ToV2` in GraphContext.js, exported for tests): seeds each node's `wallPosition` from its physics x/y and creates one 440×320 region per theme, centered on the theme's last position. Runs in the lazy initializer only when no v2 key exists.
 
 ---
 
@@ -109,14 +123,19 @@ docs/samples/thematic-import-sample.csv   Sample import file
 | `searchQuery` | string | Current search string |
 | `searchFilters` | `{themes, codes}` | Node type filter toggles |
 | `focusThemeId` | string\|null | Active focus-view theme; null = no focus |
+| `view` | `'wall'\|'graph'` | Active center panel; `'graph'` default. Graph-only toolbar actions (Connect, zoom, Fit View, Align, Physics) disable via `graphOnly` prop on `TbBtn` |
 
 ---
 
 ## Critical Conventions
 
 - **State:** All updates go through `graphReducer` via `dispatch`. Never mutate context directly.
-- **D3 / React split:** D3 owns `x`/`y` positions via force simulation. React owns rendering. Never let D3 touch the DOM.
-- **Export ID:** Canvas root div has `id="canvas-export-target"`. `exportUtils.js` and `App.js` both depend on this — do not rename.
+- **Reducer cases must spread state:** any case that returns an object literal must `{ ...state, ... }` — a bare `{ nodes, edges }` silently **drops `regions`** (and any future top-level key).
+- **History (undo/redo):** `POSITION_ONLY_KEYS = {x, y, wallPosition}` — `UPDATE_NODE` touching only these is not undoable (drags don't spam history). `UPDATE_REGION` with only `rect` changes is likewise non-undoable. Assignment (`BULK_ASSIGN_THEME`, `UNASSIGN_CODE`) IS undoable — it's an analytic act.
+- **D3 / React split:** D3 owns `x`/`y` positions via force simulation. React owns rendering. Never let D3 touch the DOM. The Wall uses d3.zoom only — no simulation; card positions are authored (`wallPosition`).
+- **Wall assignment is placement:** dropping a card fully inside exactly one region assigns it (`BULK_ASSIGN_THEME`); dropping on empty wall unassigns (`UNASSIGN_CODE`); ambiguous placement keeps assignment + shows a contested "?" badge. Decision logic is pure — `assignmentAfterDrop()` in wallGeometry.js.
+- **Wall z-order:** regions → string SVG → cards, but region label plates have `zIndex: 1` so strings never cover theme names. String anchors use `stringAnchorOnRegion()` (center-ray, continuous — do not revert to nearest-edge, it snaps at corners).
+- **Export ID:** the mounted view's root div has `id="canvas-export-target"` (Canvas or WallView — only one renders at a time). `exportUtils.js` and `App.js` both depend on this — do not rename.
 - **Physics reactivity:** `useDragAndSimulation(nodes, edges, onTick, physicsParams)` — accepts `physicsParams` as a prop and has a `useEffect` calling `simulation.current.updateParams(physicsParams)` on changes.
 - **Persistence:** `useReducer` uses a **lazy initializer** (third argument) to read localStorage synchronously before first render. Do not replace this with an effect-based restore — it causes a race condition where the save effect fires with empty state before the restore dispatches.
 - **Components:** Functional components only. No class components.
@@ -187,6 +206,11 @@ docs/samples/thematic-import-sample.csv   Sample import file
 | 7 | Modal Escape handler installed even when modal was closed | Added `if (!node) return;` guard and `node` to deps array in CodeEditModal and ThemeEditModal |
 | 8 | ImportModal cut off when content exceeded viewport height | Added `max-h-[90vh] overflow-y-auto` to modal container div |
 | 9 | E2E selectors broke after ARIA role additions | Updated `app.spec.js`: `getByRole('button')` → `getByRole('menuitem')`; `.border-t.border-slate-700` → `.border-t-2` |
+| 10 | Reducer cases returning bare `{ nodes, edges }` literals silently dropped `regions` when it was added to state | Every case now spreads `...state`; convention documented above — new top-level state keys require auditing all object-literal returns |
+| 11 | Wall drop position read from React state in `pointerup` — lagging state lost the drop | Drop position lives in `dragStateRef.lastPos` (ref), state Map is render-only |
+| 12 | Wall cards snapped their center to the cursor on grab | Grab offset recorded on `pointerdown` and applied during the drag |
+| 13 | String anchors snapped between region edges at corner crossings (nearest-edge rule) | `stringAnchorOnRegion()` uses center-ray border intersection — continuous; plates render above strings via `zIndex: 1` |
+| 14 | Tray→wall drag broke pointer capture when the card remounted into the wall layer | Tray card stays mounted during the drag; a non-interactive ghost follows the cursor on the wall |
 
 ---
 
