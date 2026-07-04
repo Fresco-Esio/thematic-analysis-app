@@ -26,7 +26,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
-import { cardRect, assignmentAfterDrop, isContested, clusterPiles } from '../../utils/wallGeometry';
+import { cardRect, assignmentAfterDrop, isContested, clusterPiles, stringAnchorOnRegion } from '../../utils/wallGeometry';
 import { getEdgeDashArray, getEdgeStrokeWidth } from '../../utils/edgeTypes';
 import WallCard from './WallCard';
 import WallRegion from './WallRegion';
@@ -265,13 +265,17 @@ export default function WallView({ onContextMenu }) {
       : position);
   });
 
-  /** String endpoint: card center for codes, region label plate for themes */
-  function edgeEndpoint(nodeId) {
-    if (cardPosById.has(nodeId)) return cardPosById.get(nodeId);
+  /**
+   * String terminal: card center for codes ({pos}), region rect for themes
+   * ({rect} — the actual anchor point is resolved against the other end so
+   * strings attach to the nearest border, clear of the label plate).
+   */
+  function edgeTerminal(nodeId) {
+    if (cardPosById.has(nodeId)) return { pos: cardPosById.get(nodeId) };
     const node = nodes.find(n => n.id === nodeId);
     if (node?.type === 'theme') {
       const region = (regions || []).find(r => r.themeId === nodeId);
-      if (region) return { x: region.rect.x + 24, y: region.rect.y + 10 };
+      if (region) return { rect: region.rect };
     }
     return null; // tray code, missing region, or subtheme — no string
   }
@@ -372,9 +376,12 @@ export default function WallView({ onContextMenu }) {
             style={{ position: 'absolute', top: 0, left: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}
           >
             {edges.map(edge => {
-              const p1 = edgeEndpoint(edge.source);
-              const p2 = edgeEndpoint(edge.target);
-              if (!p1 || !p2) return null;
+              const s = edgeTerminal(edge.source);
+              const t = edgeTerminal(edge.target);
+              if (!s || !t) return null;
+              const rectCenter = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+              const p1 = s.pos ?? stringAnchorOnRegion(s.rect, t.pos ?? rectCenter(t.rect));
+              const p2 = t.pos ?? stringAnchorOnRegion(t.rect, p1);
               const targetNode = nodes.find(n => n.id === edge.target);
               const strokeColor = edge.color || targetNode?.color || '#64748b';
               // Control point sags below the chord like a pinned string

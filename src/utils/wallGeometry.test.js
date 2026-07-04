@@ -1,4 +1,4 @@
-import { cardRect, containment, assignmentAfterDrop, isContested, clusterPiles } from './wallGeometry';
+import { cardRect, containment, assignmentAfterDrop, isContested, clusterPiles, stringAnchorOnRegion } from './wallGeometry';
 
 describe('cardRect', () => {
   test('centers the rect on the position with default card size', () => {
@@ -120,5 +120,34 @@ describe('clusterPiles', () => {
 
   test('empty input → no piles', () => {
     expect(clusterPiles([], 28)).toEqual([]);
+  });
+});
+
+describe('stringAnchorOnRegion', () => {
+  const rect = { x: 100, y: 100, w: 440, h: 320 }; // right edge 540, bottom 420
+
+  test('card to the right → anchors on the right edge at card height', () => {
+    expect(stringAnchorOnRegion(rect, { x: 800, y: 250 })).toEqual({ x: 540, y: 250 });
+  });
+
+  test('card below → anchors on the bottom edge', () => {
+    expect(stringAnchorOnRegion(rect, { x: 300, y: 700 })).toEqual({ x: 300, y: 420 });
+  });
+
+  test('card above the label plate zone → anchor pushed right, off the plate', () => {
+    const a = stringAnchorOnRegion(rect, { x: 110, y: 0 });
+    expect(a.y).toBe(100); // top edge
+    expect(a.x).toBeGreaterThanOrEqual(100 + 150); // clear of the plate width
+  });
+
+  test('card left of region near the top → anchor pushed below the plate height', () => {
+    const a = stringAnchorOnRegion(rect, { x: 0, y: 105 });
+    expect(a.x).toBe(100); // left edge
+    expect(a.y).toBeGreaterThanOrEqual(100 + 28); // clear of the plate height
+  });
+
+  test('card inside the region → nearest border point, not the interior', () => {
+    const a = stringAnchorOnRegion(rect, { x: 520, y: 260 }); // near right edge
+    expect(a).toEqual({ x: 540, y: 260 });
   });
 });
