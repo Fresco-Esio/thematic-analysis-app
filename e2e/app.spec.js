@@ -598,3 +598,16 @@ test('25 — keyboard moves a wall card and opens its menu', async ({ page }) =>
   await page.keyboard.press('Enter');
   await expect(page.getByRole('menuitem', { name: /Edit Code/ })).toBeVisible();
 });
+
+// ── 26. Sankey view — switcher + empty state ────────────────────────────────
+
+test('26 — Sankey view shows empty-state guidance when no codes exist', async ({ page }) => {
+  await page.getByRole('button', { name: /Sankey/ }).click();
+  await expect(page.getByRole('button', { name: /Sankey/ })).toHaveAttribute('aria-pressed', 'true');
+
+  // Empty-state guidance with a working Import affordance
+  await expect(page.getByText('Nothing to chart yet')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Connect/ })).toBeDisabled();
+  await page.getByRole('button', { name: /Import Data/ }).click();
+  await expect(page.getByText('Import Data', { exact: true })).toBeVisible(); // ImportModal title
+});

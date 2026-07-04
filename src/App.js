@@ -24,6 +24,7 @@ import { getMatchedNodeIds } from './utils/nodeUtils';
 import { exportToPng, exportToPdf, exportRegionToPng } from './utils/exportUtils';
 import Canvas       from './components/Canvas';
 import WallView     from './components/wall/WallView';
+import SankeyView   from './components/sankey/SankeyView';
 import Toolbar      from './components/Toolbar';
 import PhysicsPanel from './components/PhysicsPanel';
 import ImportModal  from './components/modals/ImportModal';
@@ -58,9 +59,9 @@ function AppInner() {
   }
 
   // ── UI state ────────────────────────────────────────────────────────────────
-  // Default stays 'graph' in Phase 1; flipping to 'wall' is a deliberate
+  // Default stays 'graph'; flipping the default is a deliberate
   // post-validation follow-up (design doc §1).
-  const [view,          setView]          = useState('graph'); // 'wall' | 'graph'
+  const [view,          setView]          = useState('graph'); // 'wall' | 'graph' | 'sankey'
   const [connectMode,   setConnectMode]   = useState(false);
   const [physicsOpen,   setPhysicsOpen]   = useState(false);
   const [physicsParams, setPhysicsParams] = useState(loadPhysicsParams);
@@ -454,10 +455,15 @@ function AppInner() {
             onClearSelection={() => setSelectedNodeIds(new Set())}
             onScreenToWorldReady={(fn) => { screenToWorldRef.current = fn; }}
           />
-        ) : (
+        ) : view === 'wall' ? (
           <WallView
             onContextMenu={handleContextMenu}
             onCropRectReady={(fn) => { wallCropRef.current = fn; }}
+          />
+        ) : (
+          <SankeyView
+            onEditCode={setCodeEditId}
+            onImport={() => setImportOpen(true)}
           />
         )}
         <PhysicsPanel
