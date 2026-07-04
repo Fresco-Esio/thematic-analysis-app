@@ -16,9 +16,9 @@ This is a **React-based visual workspace** for **Braun & Clarke Reflexive Themat
 
 ```bash
 npm start              # dev server on http://localhost:3000
-npm test               # Jest unit tests (54 tests, 4 suites) — watchAll=false for CI
+npm test               # Jest unit tests (65 tests, 5 suites) — watchAll=false for CI
 npm run build          # production bundle → build/
-npm run test:e2e       # Playwright E2E (25 tests, Chromium, auto-starts dev server)
+npm run test:e2e       # Playwright E2E (28 tests, Chromium, auto-starts dev server)
 npx playwright test --reporter=list   # verbose E2E output
 ```
 
@@ -33,6 +33,7 @@ npx playwright test --reporter=list   # verbose E2E output
 | Design | Neo-Brutalist — Bricolage Grotesque font, `#f0ebe3` cream canvas, `#0f0d0a` near-black, `#dc2626` red accent, hard box-shadows |
 | State | `useReducer` + React Context (`GraphContext`) |
 | Graph layout | D3 v7 force simulation |
+| Sankey layout | d3-sankey (sources → codes → themes flows) |
 | Animation | Framer Motion 12 |
 | File import | XLSX + PapaParse |
 | Export | html2canvas + jsPDF |
@@ -55,6 +56,9 @@ src/
     QuoteTooltip.js             Floating tooltip on code hover (AnimatePresence fade)
     nodes/
       GraphNode.js              Unified node component — theme or code variant based on node.type
+    sankey/
+      SankeyView.js             Sankey of Evidence — fixed 16:10 figure, hover path highlight,
+                                theme isolation, code click → CodeEditModal, subtheme toggle
     wall/
       WallView.js               Research Wall view — tray, pan/zoom surface, card drag, piles, string edges
       WallCard.js               Index-card rendering of a code node (contested badge, pile badge)
@@ -70,8 +74,10 @@ src/
     nodeUtils.js                Node sizing constants and color helpers
     wallGeometry.js             Pure Wall geometry — cardRect, containment, assignmentAfterDrop,
                                 isContested, clusterPiles, stringAnchorOnRegion
+    sankeyTransform.js          Pure transform: graph → d3-sankey nodes/links, Unassigned sink,
+                                "No source" bucket, single-source grounding warnings. No d3 imports.
     motionConfig.js             Shared Framer Motion animation variants
-e2e/app.spec.js                 25 Playwright E2E tests
+e2e/app.spec.js                 28 Playwright E2E tests
 playwright.config.js            Chromium, headless, webServer auto-start on port 3000
 docs/samples/thematic-import-sample.csv   Sample import file
 ```
@@ -123,7 +129,7 @@ docs/samples/thematic-import-sample.csv   Sample import file
 | `searchQuery` | string | Current search string |
 | `searchFilters` | `{themes, codes}` | Node type filter toggles |
 | `focusThemeId` | string\|null | Active focus-view theme; null = no focus |
-| `view` | `'wall'\|'graph'` | Active center panel; `'graph'` default. Graph-only toolbar actions (Connect, zoom, Fit View, Align, Physics) disable via `graphOnly` prop on `TbBtn` |
+| `view` | `'wall'\|'graph'\|'sankey'` | Active center panel; `'graph'` default. Graph-only toolbar actions (Connect, zoom, Fit View, Align, Physics) disable via `graphOnly` prop on `TbBtn`. Sankey is read-mostly: code click opens CodeEditModal; export id lives on its figure frame |
 
 ---
 
@@ -135,7 +141,7 @@ docs/samples/thematic-import-sample.csv   Sample import file
 - **D3 / React split:** D3 owns `x`/`y` positions via force simulation. React owns rendering. Never let D3 touch the DOM. The Wall uses d3.zoom only — no simulation; card positions are authored (`wallPosition`).
 - **Wall assignment is placement:** dropping a card fully inside exactly one region assigns it (`BULK_ASSIGN_THEME`); dropping on empty wall unassigns (`UNASSIGN_CODE`); ambiguous placement keeps assignment + shows a contested "?" badge. Decision logic is pure — `assignmentAfterDrop()` in wallGeometry.js.
 - **Wall z-order:** regions → string SVG → cards, but region label plates have `zIndex: 1` so strings never cover theme names. String anchors use `stringAnchorOnRegion()` (center-ray, continuous — do not revert to nearest-edge, it snaps at corners).
-- **Export ID:** the mounted view's root div has `id="canvas-export-target"` (Canvas or WallView — only one renders at a time). `exportUtils.js` and `App.js` both depend on this — do not rename.
+- **Export ID:** the mounted view's export root has `id="canvas-export-target"` (Canvas root, WallView root, or SankeyView's fixed-ratio figure frame — only one renders at a time). `exportUtils.js` and `App.js` both depend on this — do not rename.
 - **Physics reactivity:** `useDragAndSimulation(nodes, edges, onTick, physicsParams)` — accepts `physicsParams` as a prop and has a `useEffect` calling `simulation.current.updateParams(physicsParams)` on changes.
 - **Persistence:** `useReducer` uses a **lazy initializer** (third argument) to read localStorage synchronously before first render. Do not replace this with an effect-based restore — it causes a race condition where the save effect fires with empty state before the restore dispatches.
 - **Components:** Functional components only. No class components.

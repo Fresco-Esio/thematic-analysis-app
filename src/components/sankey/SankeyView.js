@@ -112,15 +112,15 @@ export default function SankeyView({ onEditCode, onImport }) {
     ? ['SOURCES', 'CODES', 'SUBTHEMES', 'THEMES']
     : ['SOURCES', 'CODES', 'THEMES'];
 
-  const probe = hover ?? (isolatedThemeId ? { themeKey: isolatedThemeId } : null);
   const litNodeIds = useMemo(() => {
+    const probe = hover ?? (isolatedThemeId ? { themeKey: isolatedThemeId } : null);
     if (!layout || !probe) return null;
     const lit = new Set();
     for (const l of layout.links) {
       if (linkMatches(l, probe)) { lit.add(l.source.id); lit.add(l.target.id); }
     }
     return lit;
-  }, [layout, probe]);
+  }, [layout, hover, isolatedThemeId]);
 
   function linkOpacity(l) {
     if (isolatedThemeId && l.themeKey !== isolatedThemeId) return 0.06;

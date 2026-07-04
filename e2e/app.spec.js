@@ -612,6 +612,35 @@ test('26 — Sankey view shows empty-state guidance when no codes exist', async 
   await expect(page.getByText('Import Data', { exact: true })).toBeVisible(); // ImportModal title
 });
 
+// ── 27. Sankey render smoke after import ────────────────────────────────────
+
+test('27 — Sankey renders source→code→theme ribbons after CSV import', async ({ page }) => {
+  // Import the sample CSV (same flow as test 9)
+  await page.getByRole('button', { name: /Import/i }).click();
+  const csvPath = path.resolve(__dirname, '..', 'docs', 'samples', 'thematic-import-sample.csv');
+  await page.locator('input[type="file"]').setInputFiles(csvPath);
+  await expect(page.getByText('Preview Import')).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: /Confirm Import/i }).click();
+  await expect(page.getByText('Preview Import')).not.toBeVisible({ timeout: 3000 });
+
+  await page.getByRole('button', { name: /Sankey/ }).click();
+
+  // 10 codes → 10 source→code links, 9 code→theme, 1 code→Unassigned = 20 ribbons
+  const ribbons = page.locator('#canvas-export-target svg path[role="img"]');
+  await expect(ribbons).toHaveCount(20);
+
+  // Column headers and the explicit Unassigned sink — scope to the figure:
+  // unscoped getByText would collide with the status bar ("7 themes",
+  // "1 unassigned") under Playwright's substring/case-insensitive matching.
+  const figure = page.locator('#canvas-export-target');
+  await expect(figure.getByText('SOURCES')).toBeVisible();
+  await expect(figure.getByText('THEMES', { exact: true })).toBeVisible();
+  await expect(figure.getByText('Unassigned', { exact: true })).toBeVisible();
+
+  // Every sample theme has exactly one code from one interview → grounding glyph
+  await expect(figure.getByText(/⚠ Anxiety responses/)).toBeVisible();
+});
+
 // ── 28. Sankey interactions ─────────────────────────────────────────────────
 
 test('28 — Sankey code click opens edit modal; theme click isolates flow', async ({ page }) => {
