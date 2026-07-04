@@ -36,7 +36,7 @@ import EdgeRelationshipPanel from './components/EdgeRelationshipPanel';
 // ── Inner app (needs access to GraphContext hooks) ────────────────────────────
 function AppInner() {
   const dispatch = useGraphDispatch();
-  const { nodes, edges } = useGraph();
+  const { nodes, edges, regions } = useGraph();
   const { canUndo, canRedo, undo, redo } = useGraphHistory();
   const canvasRef = useRef(null);
   const fitViewFn = useRef(null);
@@ -141,10 +141,16 @@ function AppInner() {
 
   function handleAddTheme() {
     const { x: cx, y: cy } = viewportCenterWorld();
+    const themeId = makeId('theme');
     dispatch({
       type: 'ADD_NODE',
-      node: { id: makeId('theme'), type: 'theme', label: 'New Theme', color: '#6366f1', x: cx, y: cy, wallPosition: { x: cx, y: cy } },
+      node: { id: themeId, type: 'theme', label: 'New Theme', color: '#6366f1', x: cx, y: cy, wallPosition: { x: cx, y: cy } },
     });
+    // Every theme gets a territory on the Wall
+    dispatch({ type: 'ADD_REGION', region: {
+      id: `region-${themeId}`, themeId,
+      rect: { x: cx - 220, y: cy - 160, w: 440, h: 320 },
+    }});
   }
 
   function handleAddCode() {
@@ -314,6 +320,19 @@ function AppInner() {
           }
         },
         { label: '⊙ Focus View', action: () => handleSetFocusTheme(id) },
+        // Recreate a deleted Wall region for this theme
+        ...(!(regions || []).some(r => r.themeId === id) ? [{
+          label: '▦ Show on Wall',
+          action: () => {
+            const themeNode = nodes.find(n => n.id === id);
+            const cx = themeNode?.wallPosition?.x ?? themeNode?.x ?? window.innerWidth / 2;
+            const cy = themeNode?.wallPosition?.y ?? themeNode?.y ?? window.innerHeight / 2;
+            dispatch({ type: 'ADD_REGION', region: {
+              id: `region-${id}`, themeId: id,
+              rect: { x: cx - 220, y: cy - 160, w: 440, h: 320 },
+            }});
+          },
+        }] : []),
         { label: collapsedNodeIds.has(id) ? '⊞ Expand Codes' : '⊟ Collapse Codes', action: () => toggleCollapse(id) },
         { label: '✕ Delete Theme', action: () => {
             const connectedCount = edges.filter(e => e.target === id).length;

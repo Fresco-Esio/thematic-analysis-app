@@ -27,6 +27,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
 import WallCard from './WallCard';
+import WallRegion from './WallRegion';
 
 const TRAY_W = 208;
 const MIN_ZOOM = 0.3;
@@ -42,7 +43,7 @@ function resolveWallPosition(node) {
 }
 
 export default function WallView({ onContextMenu }) {
-  const { nodes } = useGraph();
+  const { nodes, regions } = useGraph();
   const dispatch = useGraphDispatch();
 
   const surfaceRef = useRef(null);
@@ -242,6 +243,22 @@ export default function WallView({ onContextMenu }) {
           ref={layerRef}
           style={{ position: 'absolute', top: 0, left: 0, transformOrigin: '0 0' }}
         >
+          {/* Theme regions — beneath the cards */}
+          {(regions || []).map(region => {
+            const theme = nodes.find(n => n.id === region.themeId);
+            if (!theme) return null;
+            return (
+              <WallRegion
+                key={region.id}
+                region={region}
+                color={theme.color || '#6b7280'}
+                label={theme.label || 'Untitled Theme'}
+                zoomK={() => zoomTransformRef.current.k}
+                onCommitRect={(rect) => dispatch({ type: 'UPDATE_REGION', id: region.id, changes: { rect } })}
+                onContextMenu={(x, y) => onContextMenu?.('theme', region.themeId, x, y)}
+              />
+            );
+          })}
           {wallCards.map(({ node, position }) => (
             <WallCard
               key={node.id}
@@ -261,7 +278,7 @@ export default function WallView({ onContextMenu }) {
         </div>
 
         {/* Usage hint — shown until the wall has content */}
-        {wallCards.length === 0 && !ghost && (
+        {wallCards.length === 0 && (regions || []).length === 0 && !ghost && (
           <div
             style={{
               position: 'absolute',
