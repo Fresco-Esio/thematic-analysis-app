@@ -23,7 +23,7 @@ import * as d3 from 'd3';
 import { createSimulation } from '../utils/forceSimulation';
 import { useGraph, useGraphDispatch } from '../context/GraphContext';
 import GraphNode from './nodes/GraphNode';
-import { getNodeRadius } from '../utils/nodeUtils';
+import { getNodeRadius, getMatchedNodeIds } from '../utils/nodeUtils';
 import { getEdgeDashArray, getEdgeStrokeWidth } from '../utils/edgeTypes';
 import QuoteTooltip from './QuoteTooltip';
 import './Canvas.css';
@@ -150,17 +150,26 @@ export default function Canvas({
   onAlignReady,
   onZoomReady,
   searchQuery = '',
-  searchFilters = { themes: true, codes: true },
+  searchFilters = { themes: true, subthemes: true, codes: true },
   focusThemeId = null,
   onExitFocus,
   collapsedNodeIds = new Set(),
   selectedNodeIds = new Set(),
   onShiftClickNode = () => {},
   onClearSelection = () => {},
+  onScreenToWorldReady,
 }) {
   const graphState = useGraph();
   const dispatch = useGraphDispatch();
-  const canvasState = useCanvasState();
+  // Destructured so effects/callbacks depend on stable setters and primitive
+  // values — depending on the containing object re-ran them every render.
+  const {
+    setZoomTransform,
+    hoveredNodeId, setHoveredNodeId,
+    connectingFrom, setConnectingFrom,
+    activeEdgeId, setActiveEdgeId,
+    tooltipPos, setTooltipPos,
+  } = useCanvasState();
   const { simulation, positions } = useDragAndSimulation(
     graphState.nodes,
     graphState.edges,
@@ -189,7 +198,7 @@ export default function Canvas({
       .scaleExtent([MIN_ZOOM, MAX_ZOOM])
       .on('zoom', (event) => {
         const t = { x: event.transform.x, y: event.transform.y, k: event.transform.k };
-        canvasState.setZoomTransform(t);
+        setZoomTransform(t);
         zoomTransformRef.current = t;
 
         // Apply transform to nodes container
@@ -209,7 +218,7 @@ export default function Canvas({
     return () => {
       svg.on('.zoom', null);
     };
-  }, [canvasState]);
+  }, [setZoomTransform]);
 
   // ── Mouse Move Handler (update tooltip & connecting line) ────────────────
 
@@ -220,18 +229,17 @@ export default function Canvas({
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    canvasState.setTooltipPos({
+    setTooltipPos({
       x: mouseX + TOOLTIP_OFFSET,
       y: mouseY + TOOLTIP_OFFSET,
     });
-  }, [canvasState]);
+  }, [setTooltipPos]);
 
   // ── Mouse Leave Handler (clear hover & connection) ────────────────────
 
   const handleCanvasMouseLeave = useCallback(() => {
-    canvasState.setHoveredNodeId(null);
-    canvasState.setConnectingFrom(null);
-  }, [canvasState]);
+    setHoveredNodeId(null);
+  }, [setHoveredNodeId]);
 
   // ── Pointer Drag Handlers (replace Framer Motion drag) ───────────────
 
@@ -281,45 +289,46 @@ export default function Canvas({
   // ── CodeNode Event Handlers ───────────────────────────────────────────
 
   const handleCodeNodeMouseEnter = useCallback((nodeId) => {
-    canvasState.setHoveredNodeId(nodeId);
-  }, [canvasState]);
+    setHoveredNodeId(nodeId);
+  }, [setHoveredNodeId]);
 
   const handleCodeNodeMouseLeave = useCallback(() => {
-    canvasState.setHoveredNodeId(null);
-  }, [canvasState]);
+    setHoveredNodeId(null);
+  }, [setHoveredNodeId]);
 
   const handleCodeNodeClick = useCallback((nodeId) => {
     if (!connectMode) return; // Normal mode: left-click does nothing; use right-click
     // Connect mode: code nodes are sources
-    if (!canvasState.connectingFrom) {
+    if (!connectingFrom) {
       const pos = positions.current.get(nodeId) || { x: 0, y: 0 };
-      canvasState.setConnectingFrom({ nodeId, x: pos.x, y: pos.y });
-    } else if (canvasState.connectingFrom.nodeId === nodeId) {
-      canvasState.setConnectingFrom(null); // cancel: clicked same node
+      setConnectingFrom({ nodeId, x: pos.x, y: pos.y });
+    } else if (connectingFrom.nodeId === nodeId) {
+      setConnectingFrom(null); // cancel: clicked same node
     }
-  }, [connectMode, canvasState, positions]);
+  }, [connectMode, connectingFrom, setConnectingFrom, positions]);
 
   const handleThemeNodeClick = useCallback((nodeId) => {
-    if (!connectMode || !canvasState.connectingFrom) return;
-    // Connect mode: theme nodes are targets
-    const sourceNode = graphState.nodes.find(n => n.id === canvasState.connectingFrom.nodeId);
+    if (!connectMode || !connectingFrom) return;
+    // Connect mode: theme and subtheme nodes are targets
+    const sourceNode = graphState.nodes.find(n => n.id === connectingFrom.nodeId);
     const targetNode = graphState.nodes.find(n => n.id === nodeId);
-    if (sourceNode && targetNode && sourceNode.type === 'code' && targetNode.type === 'theme') {
+    const validTarget = targetNode && (targetNode.type === 'theme' || targetNode.type === 'subtheme');
+    if (sourceNode && validTarget && sourceNode.type === 'code') {
       const edgeId = `edge-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       dispatch({ type: 'ADD_EDGE', edge: { id: edgeId, source: sourceNode.id, target: targetNode.id } });
-      canvasState.setConnectingFrom(null);
+      setConnectingFrom(null);
     }
-  }, [connectMode, canvasState, graphState.nodes, dispatch]);
+  }, [connectMode, connectingFrom, setConnectingFrom, graphState.nodes, dispatch]);
 
   // ── Edge Event Handlers ───────────────────────────────────────────────
 
   const handleEdgeMouseEnter = useCallback((edgeId) => {
-    canvasState.setActiveEdgeId(edgeId);
-  }, [canvasState]);
+    setActiveEdgeId(edgeId);
+  }, [setActiveEdgeId]);
 
   const handleEdgeMouseLeave = useCallback(() => {
-    canvasState.setActiveEdgeId(null);
-  }, [canvasState]);
+    setActiveEdgeId(null);
+  }, [setActiveEdgeId]);
 
   const handleEdgeClick = useCallback((edgeId, e) => {
     onContextMenu('edge', edgeId, e?.clientX ?? 0, e?.clientY ?? 0);
@@ -328,12 +337,12 @@ export default function Canvas({
   // ── ThemeNode Mouse Handlers ───────────────────────────────────────────
 
   const handleThemeNodeMouseEnter = useCallback((nodeId) => {
-    canvasState.setHoveredNodeId(nodeId);
-  }, [canvasState]);
+    setHoveredNodeId(nodeId);
+  }, [setHoveredNodeId]);
 
   const handleThemeNodeMouseLeave = useCallback(() => {
-    canvasState.setHoveredNodeId(null);
-  }, [canvasState]);
+    setHoveredNodeId(null);
+  }, [setHoveredNodeId]);
 
   // ── Fit to View ───────────────────────────────────────────────────────────
 
@@ -409,6 +418,21 @@ export default function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Expose screen→world coordinate conversion so App can place new nodes at
+  // the visible viewport center instead of raw window coordinates.
+  useEffect(() => {
+    if (onScreenToWorldReady) {
+      onScreenToWorldReady((clientX, clientY) => {
+        const rect = svgRef.current?.getBoundingClientRect();
+        const { x: tx, y: ty, k } = zoomTransformRef.current;
+        const px = clientX - (rect?.left ?? 0);
+        const py = clientY - (rect?.top ?? 0);
+        return { x: (px - tx) / k, y: (py - ty) / k };
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-fit once on open when nodes exist
   const hasAutoFitted = useRef(false);
   useEffect(() => {
@@ -446,16 +470,19 @@ export default function Canvas({
     return new Set([focusThemeId, ...directNeighbours, ...subthemeNeighbours]);
   }, [focusThemeId, graphState.edges, graphState.nodes]);
 
-  // Escape key handler
+  // Escape key handler — cancels a pending connection first, then exits focus
   useEffect(() => {
     function handleKeyDown(e) {
-      if (e.key === 'Escape' && focusThemeId) {
+      if (e.key !== 'Escape') return;
+      if (connectingFrom) {
+        setConnectingFrom(null);
+      } else if (focusThemeId) {
         onExitFocus?.();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [focusThemeId, onExitFocus]);
+  }, [focusThemeId, onExitFocus, connectingFrom, setConnectingFrom]);
 
   // Zoom-to-cluster effect
   useEffect(() => {
@@ -495,21 +522,17 @@ export default function Canvas({
 
   const searchActive = searchQuery.trim().length > 0;
 
-  const matchedNodeIds = useMemo(() => {
-    if (!searchActive) return new Set();
-    const lowerQuery = searchQuery.toLowerCase().trim();
-    return new Set(
-      graphState.nodes
-        .filter(n => {
-          const typeMatch =
-            (n.type === 'theme'    && searchFilters.themes) ||
-            (n.type === 'subtheme' && searchFilters.subthemes) ||
-            (n.type === 'code'     && searchFilters.codes);
-          return typeMatch && (n.label || '').toLowerCase().includes(lowerQuery);
-        })
-        .map(n => n.id)
-    );
-  }, [graphState.nodes, searchQuery, searchFilters, searchActive]);
+  const matchedNodeIds = useMemo(
+    () => getMatchedNodeIds(graphState.nodes, searchQuery, searchFilters),
+    [graphState.nodes, searchQuery, searchFilters]
+  );
+
+  // ── Node lookup map (avoids O(edges × nodes) find() scans per render) ──
+
+  const nodeMap = useMemo(
+    () => new Map(graphState.nodes.map(n => [n.id, n])),
+    [graphState.nodes]
+  );
 
   // ── Collapsed Code IDs ───────────────────────────────────────────────
 
@@ -519,22 +542,22 @@ export default function Canvas({
       graphState.edges.forEach(e => {
         if (e.source !== collapsedId && e.target !== collapsedId) return;
         const codeId = e.source === collapsedId ? e.target : e.source;
-        const codeNode = graphState.nodes.find(nd => nd.id === codeId);
+        const codeNode = nodeMap.get(codeId);
         if (codeNode?.type === 'code') ids.add(codeId);
       });
     });
     return ids;
-  }, [collapsedNodeIds, graphState.nodes, graphState.edges]);
+  }, [collapsedNodeIds, nodeMap, graphState.edges]);
 
   // ── Edge List (Memoized) ──────────────────────────────────────────────
 
   const edgeListMemo = useMemo(() => {
     return (graphState.edges || []).map(edge => {
-      const sourceNode = graphState.nodes.find(n => n.id === edge.source);
-      const targetNode = graphState.nodes.find(n => n.id === edge.target);
+      const sourceNode = nodeMap.get(edge.source);
+      const targetNode = nodeMap.get(edge.target);
       return { edge, sourceNode, targetNode };
     }).filter(({ sourceNode, targetNode }) => sourceNode && targetNode);
-  }, [graphState.edges, graphState.nodes]);
+  }, [graphState.edges, nodeMap]);
 
   // ── Get Node Position   ───────────────────────────────────────────────
 
@@ -542,20 +565,18 @@ export default function Canvas({
     const pos = positions.current.get(nodeId);
     if (pos) return pos;
 
-    const node = graphState.nodes.find(n => n.id === nodeId);
+    const node = nodeMap.get(nodeId);
     return node && node.x !== undefined && node.y !== undefined
       ? { x: node.x, y: node.y }
       : { x: 0, y: 0 };
-  }, [graphState.nodes, positions]);
+  }, [nodeMap, positions]);
 
-  // ── Tooltip Visibility ───────────────────────────────────────────────
+  // ── Tooltip Visibility (code nodes only — themes have no quote) ──────
 
-  const showTooltip = canvasState.hoveredNodeId &&
-    !canvasState.connectingFrom;
-
-  const hoveredCodeNode = showTooltip
-    ? graphState.nodes.find(n => n.id === canvasState.hoveredNodeId)
-    : null;
+  const hoveredCodeNode = hoveredNodeId ? nodeMap.get(hoveredNodeId) : null;
+  const showTooltip = !!hoveredCodeNode &&
+    hoveredCodeNode.type === 'code' &&
+    !connectingFrom;
 
   // ── Render ────────────────────────────────────────────────────────────
 
@@ -585,7 +606,10 @@ export default function Canvas({
           height: '100%',
           pointerEvents: 'auto',
         }}
-        onClick={onClearSelection}
+        onClick={() => {
+          onClearSelection();
+          if (connectingFrom) setConnectingFrom(null);
+        }}
       >
         {/* Edges group */}
         <g id="edges">
@@ -593,7 +617,7 @@ export default function Canvas({
             const { x: x1, y: y1 } = getNodePos(sourceNode.id);
             const { x: x2, y: y2 } = getNodePos(targetNode.id);
 
-            const isActive = canvasState.activeEdgeId === edge.id;
+            const isActive = activeEdgeId === edge.id;
             const strokeColor = edge.color || (targetNode.color || '#64748b');
             const dashArray = getEdgeDashArray(edge.relationType);
             const strokeWidth = isActive ? 7 : getEdgeStrokeWidth(edge.relationType);
@@ -617,13 +641,25 @@ export default function Canvas({
                   strokeLinecap="round"
                   strokeDasharray={dashArray || undefined}
                   style={{
-                    cursor: 'pointer',
+                    pointerEvents: 'none',
                     transition: 'stroke-width 150ms ease',
                     opacity: isActive ? 1 : 0.6,
                   }}
+                />
+                {/* Invisible wide hit target — thin lines are hard to click.
+                    Rendered as <path> so e2e selectors on `#edges line` still
+                    count one element per edge. */}
+                <path
+                  d={`M ${x1} ${y1} L ${x2} ${y2}`}
+                  stroke="transparent"
+                  strokeWidth={16}
+                  strokeLinecap="round"
+                  fill="none"
+                  vectorEffect="non-scaling-stroke"
+                  style={{ cursor: 'pointer' }}
                   onMouseEnter={() => handleEdgeMouseEnter(edge.id)}
                   onMouseLeave={() => handleEdgeMouseLeave()}
-                  onClick={(e) => handleEdgeClick(edge.id, e)}
+                  onClick={(e) => { e.stopPropagation(); handleEdgeClick(edge.id, e); }}
                 />
                 {hasLabel && (
                   <g style={{ pointerEvents: 'none' }}>
@@ -659,14 +695,14 @@ export default function Canvas({
         </g>
 
         {/* Connecting line — screen-space, direct SVG child (no zoom transform applied) */}
-        {canvasState.connectingFrom && (() => {
+        {connectingFrom && (() => {
           const { x: tx, y: ty, k } = zoomTransformRef.current;
           // Convert source from world → screen space
-          const sx = canvasState.connectingFrom.x * k + tx;
-          const sy = canvasState.connectingFrom.y * k + ty;
+          const sx = connectingFrom.x * k + tx;
+          const sy = connectingFrom.y * k + ty;
           // Target is already screen-space (mouse position, no offset)
-          const ex = canvasState.tooltipPos.x - TOOLTIP_OFFSET;
-          const ey = canvasState.tooltipPos.y - TOOLTIP_OFFSET;
+          const ex = tooltipPos.x - TOOLTIP_OFFSET;
+          const ey = tooltipPos.y - TOOLTIP_OFFSET;
           return (
             <line
               x1={sx}
@@ -713,15 +749,15 @@ export default function Canvas({
             if (parentEdge) {
               const parentId = parentEdge.source === codeId ? parentEdge.target : parentEdge.source;
               collapsingPositionMap.set(codeId, getNodePos(parentId));
-              const parentNode = graphState.nodes.find(n => n.id === parentId);
+              const parentNode = nodeMap.get(parentId);
               if (parentNode?.type === 'theme') dotCodeIds.add(codeId);
             }
           });
 
           return (graphState.nodes || []).map((node) => {
           const pos = getNodePos(node.id);
-          const isConnecting = canvasState.connectingFrom?.nodeId === node.id;
-          const isSelected = canvasState.hoveredNodeId === node.id && connectMode;
+          const isConnecting = connectingFrom?.nodeId === node.id;
+          const isSelected = hoveredNodeId === node.id && connectMode;
 
           // Route clicks based on node type (code → source, theme → target in connect mode)
           const handleClick = (e) => {
@@ -802,8 +838,69 @@ export default function Canvas({
         })()}
       </div>
 
+      {/* Empty state — first-run guidance */}
+      {graphState.nodes.length === 0 && (
+        <div
+          style={{
+            position:      'absolute',
+            inset:         0,
+            display:       'flex',
+            flexDirection: 'column',
+            alignItems:    'center',
+            justifyContent:'center',
+            textAlign:     'center',
+            pointerEvents: 'none',
+            padding:       24,
+            gap:           12,
+          }}
+        >
+          <p style={{
+            fontSize: 13, fontWeight: 800, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: '#dc2626', margin: 0,
+          }}>
+            Empty canvas
+          </p>
+          <p style={{ fontSize: 28, fontWeight: 800, color: '#0f0d0a', margin: 0, maxWidth: '22ch', lineHeight: 1.15 }}>
+            Start your thematic map
+          </p>
+          <p style={{ fontSize: 16, color: '#6b6560', margin: 0, maxWidth: '46ch', lineHeight: 1.5 }}>
+            <strong style={{ color: '#0f0d0a' }}>⬆ Import</strong> brings in your coded spreadsheet (.csv or .xlsx),
+            or use <strong style={{ color: '#0f0d0a' }}>＋ Add Theme</strong> and <strong style={{ color: '#0f0d0a' }}>＋ Add Code</strong> to build from scratch.
+            Drag nodes to arrange them; right-click anything for actions.
+          </p>
+        </div>
+      )}
+
+      {/* Connect-mode hint pill */}
+      {connectMode && (
+        <div
+          aria-live="polite"
+          style={{
+            position:        'absolute',
+            bottom:          24,
+            left:            '50%',
+            transform:       'translateX(-50%)',
+            zIndex:          40,
+            backgroundColor: '#0f0d0a',
+            color:           'white',
+            border:          '2px solid white',
+            boxShadow:       '4px 4px 0 #dc2626',
+            padding:         '8px 20px',
+            fontWeight:      700,
+            fontSize:        15,
+            pointerEvents:   'none',
+            borderRadius:    4,
+            whiteSpace:      'nowrap',
+          }}
+        >
+          {connectingFrom
+            ? 'Now click a theme or subtheme to link — Esc cancels'
+            : 'Click a code node to start a connection'}
+        </div>
+      )}
+
       {/* Exit Focus pill */}
-      {focusThemeId && (
+      {focusThemeId && !connectMode && (
         <button
           onClick={onExitFocus}
           aria-label="Exit focus view"
@@ -831,8 +928,8 @@ export default function Canvas({
       {/* Quote Tooltip */}
       <QuoteTooltip
         visible={showTooltip}
-        x={canvasState.tooltipPos.x}
-        y={canvasState.tooltipPos.y}
+        x={tooltipPos.x}
+        y={tooltipPos.y}
         code={hoveredCodeNode?.label || ''}
         quote={hoveredCodeNode?.quote || ''}
         source={hoveredCodeNode?.source || ''}

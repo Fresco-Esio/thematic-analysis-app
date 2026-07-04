@@ -13,7 +13,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
-import { UNASSIGNED_COLOR } from '../../context/GraphContext';
 
 export default function ThemeEditModal({ nodeId, onClose }) {
   const { nodes, edges } = useGraph();
@@ -41,24 +40,17 @@ export default function ThemeEditModal({ nodeId, onClose }) {
   const connectedCodeCount = edges.filter(e => e.target === nodeId).length;
 
   function handleSave() {
-    // Update theme node
+    // Reducer cascades the color change to assigned codes/subthemes in one step
     dispatch({ type: 'UPDATE_NODE', id: nodeId, changes: { label: label.trim() || node.label, color } });
-    // Update color on all code nodes whose primaryThemeId is this theme
-    nodes
-      .filter(n => n.type === 'code' && n.primaryThemeId === nodeId)
-      .forEach(n => dispatch({ type: 'UPDATE_NODE', id: n.id, changes: { color } }));
     onClose();
   }
 
   function handleDelete() {
     const msg = connectedCodeCount > 0
-      ? `Delete theme "${node.label}"? ${connectedCodeCount} connected code node(s) will become unassigned.`
-      : `Delete theme "${node.label}"?`;
+      ? `Delete theme "${node.label}"? ${connectedCodeCount} connected code node(s) will become unassigned. (You can undo with Ctrl+Z)`
+      : `Delete theme "${node.label}"? (You can undo with Ctrl+Z)`;
     if (window.confirm(msg)) {
-      // Revert connected code nodes to unassigned
-      nodes
-        .filter(n => n.type === 'code' && n.primaryThemeId === nodeId)
-        .forEach(n => dispatch({ type: 'UPDATE_NODE', id: n.id, changes: { primaryThemeId: null, color: UNASSIGNED_COLOR } }));
+      // Reducer unassigns dependent codes/subthemes as part of DELETE_NODE
       dispatch({ type: 'DELETE_NODE', id: nodeId });
       onClose();
     }
@@ -80,6 +72,7 @@ export default function ThemeEditModal({ nodeId, onClose }) {
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder="Enter theme name…"
+          autoFocus
         />
 
         {/* Color picker */}

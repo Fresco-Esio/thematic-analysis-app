@@ -77,11 +77,21 @@ export function graphReducer(state, action) {
     }
 
     case 'UPDATE_NODE': {
+      // Changing a theme's color cascades to its assigned codes/subthemes in
+      // the same action, so undo/redo treats the recolor as one step.
+      const target = state.nodes.find(n => n.id === action.id);
+      const cascadeColor = target?.type === 'theme' && action.changes.color !== undefined
+        ? action.changes.color
+        : null;
       return {
         ...state,
-        nodes: state.nodes.map(n =>
-          n.id === action.id ? { ...n, ...action.changes } : n
-        ),
+        nodes: state.nodes.map(n => {
+          if (n.id === action.id) return { ...n, ...action.changes };
+          if (cascadeColor && (n.type === 'code' || n.type === 'subtheme') && n.primaryThemeId === action.id) {
+            return { ...n, color: cascadeColor };
+          }
+          return n;
+        }),
       };
     }
 
@@ -161,17 +171,24 @@ export function graphReducer(state, action) {
       );
       if (dup) return state;
 
-      // Update primaryThemeId on the source node (code or subtheme) if it doesn't have one yet
+      // Update primaryThemeId on the source node (code or subtheme) if it doesn't
+      // have one yet. Edges to a subtheme resolve to the subtheme's parent theme.
       const sourceNode = state.nodes.find(n => n.id === action.edge.source);
-      const themeNode  = state.nodes.find(n => n.id === action.edge.target);
+      const targetNode = state.nodes.find(n => n.id === action.edge.target);
       let updatedNodes = state.nodes;
 
-      if (sourceNode && themeNode && themeNode.type === 'theme' && !sourceNode.primaryThemeId) {
-        updatedNodes = state.nodes.map(n =>
-          n.id === sourceNode.id
-            ? { ...n, primaryThemeId: themeNode.id, color: themeNode.color }
-            : n
-        );
+      if (sourceNode && targetNode && !sourceNode.primaryThemeId) {
+        const resolvedThemeId = targetNode.type === 'theme'
+          ? targetNode.id
+          : (targetNode.type === 'subtheme' ? targetNode.primaryThemeId : null);
+        const resolvedTheme = state.nodes.find(n => n.id === resolvedThemeId && n.type === 'theme');
+        if (resolvedTheme) {
+          updatedNodes = state.nodes.map(n =>
+            n.id === sourceNode.id
+              ? { ...n, primaryThemeId: resolvedTheme.id, color: resolvedTheme.color }
+              : n
+          );
+        }
       }
 
       return {

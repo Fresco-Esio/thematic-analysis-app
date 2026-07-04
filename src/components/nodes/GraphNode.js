@@ -95,13 +95,24 @@ export default function GraphNode({
     return `4px 4px 0 #0f0d0a`;
   };
 
-  // Keyboard handler for accessibility
+  // Keyboard handler for accessibility.
+  // In connect mode Enter/Space acts like a click (start/complete connection);
+  // otherwise it opens the node's context menu, so every node action is
+  // reachable without a mouse.
   const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    if (connectMode) {
       onClick(e);
+      return;
     }
-  }, [onClick]);
+    const rect = e.currentTarget.getBoundingClientRect();
+    onContextMenu?.({
+      preventDefault: () => {},
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2,
+    });
+  }, [onClick, onContextMenu, connectMode]);
 
   // Motion variants
   const variants = {

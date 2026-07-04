@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { savePhysicsParams } from '../utils/forceSimulation';
+import { savePhysicsParams, DEFAULT_PHYSICS } from '../utils/forceSimulation';
 
 const SLIDERS = [
   { key: 'linkDistance',    label: 'Link Distance',    min: 60,   max: 400,  step: 10, unit: 'px' },
@@ -150,7 +150,6 @@ export default function PhysicsPanel({ open, params, onChange, onClose }) {
 
           <button
             onClick={() => {
-              const { DEFAULT_PHYSICS } = require('../utils/forceSimulation');
               onChange({ ...DEFAULT_PHYSICS });
               savePhysicsParams({ ...DEFAULT_PHYSICS });
               resetTimer();

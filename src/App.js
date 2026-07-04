@@ -17,9 +17,10 @@
  *   - contextMenu:   position + items
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GraphProvider, useGraphDispatch, useGraph, useGraphHistory, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
 import { loadPhysicsParams } from './utils/forceSimulation';
+import { getMatchedNodeIds } from './utils/nodeUtils';
 import { exportToPng, exportToPdf } from './utils/exportUtils';
 import Canvas       from './components/Canvas';
 import Toolbar      from './components/Toolbar';
@@ -40,6 +41,19 @@ function AppInner() {
   const fitViewFn = useRef(null);
   const alignTriggerRef = useRef(null);
   const zoomByFn = useRef(null);
+  const screenToWorldRef = useRef(null);
+
+  // World coords of the visible viewport center — new nodes land where the
+  // user is looking, even when panned/zoomed away from the origin.
+  function viewportCenterWorld() {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const base = screenToWorldRef.current ? screenToWorldRef.current(cx, cy) : { x: cx, y: cy };
+    return {
+      x: base.x + (Math.random() - 0.5) * 200,
+      y: base.y + (Math.random() - 0.5) * 200,
+    };
+  }
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [connectMode,   setConnectMode]   = useState(false);
@@ -122,8 +136,7 @@ function AppInner() {
   // ── Toolbar actions ─────────────────────────────────────────────────────────
 
   function handleAddTheme() {
-    const cx = window.innerWidth  / 2 + (Math.random() - 0.5) * 200;
-    const cy = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+    const { x: cx, y: cy } = viewportCenterWorld();
     dispatch({
       type: 'ADD_NODE',
       node: { id: makeId('theme'), type: 'theme', label: 'New Theme', color: '#6366f1', x: cx, y: cy },
@@ -131,8 +144,7 @@ function AppInner() {
   }
 
   function handleAddCode() {
-    const cx = window.innerWidth  / 2 + (Math.random() - 0.5) * 200;
-    const cy = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+    const { x: cx, y: cy } = viewportCenterWorld();
     dispatch({
       type: 'ADD_NODE',
       node: { id: makeId('code'), type: 'code', label: 'New Code', quote: '', source: '', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy },
@@ -140,8 +152,7 @@ function AppInner() {
   }
 
   function handleAddSubtheme() {
-    const cx = window.innerWidth  / 2 + (Math.random() - 0.5) * 200;
-    const cy = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+    const { x: cx, y: cy } = viewportCenterWorld();
     dispatch({
       type: 'ADD_NODE',
       node: { id: makeId('subtheme'), type: 'subtheme', label: 'New Subtheme', primaryThemeId: null, color: UNASSIGNED_COLOR, x: cx, y: cy },
@@ -286,10 +297,12 @@ function AppInner() {
         { label: '＋ Add Subtheme', action: () => {
             const themeNode = nodes.find(n => n.id === id);
             const subId = makeId('subtheme');
+            // x/y are screen coords (context menu position) — convert to world
+            const world = screenToWorldRef.current ? screenToWorldRef.current(x, y) : { x, y };
             dispatch({ type: 'ADD_NODE', node: {
               id: subId, type: 'subtheme', label: 'New Subtheme',
               primaryThemeId: id, color: themeNode?.color ?? UNASSIGNED_COLOR,
-              x: x + 160, y: y + 80,
+              x: world.x + 160, y: world.y + 80,
             }});
             dispatch({ type: 'ADD_EDGE', edge: { id: makeId('edge'), source: subId, target: id }});
             setSubthemeEditId(subId);
@@ -337,6 +350,12 @@ function AppInner() {
     dispatch({ type: 'UPDATE_EDGE', id: edgeEditId, changes: { relationType, label } });
   }
 
+  // ── Search match count (announced by Toolbar; highlight logic in Canvas) ────
+  const matchCount = useMemo(
+    () => getMatchedNodeIds(nodes, searchQuery, searchFilters).size,
+    [nodes, searchQuery, searchFilters]
+  );
+
   // ── Status bar counts ────────────────────────────────────────────────────────
   const codeCount      = nodes.filter(n => n.type === 'code').length;
   const themeCount     = nodes.filter(n => n.type === 'theme').length;
@@ -373,6 +392,7 @@ function AppInner() {
         onSearchToggle={() => { setSearchOpen(o => !o); if (searchOpen) setSearchQuery(''); }}
         onSearchChange={setSearchQuery}
         onSearchFilterChange={(key) => setSearchFilters(f => ({ ...f, [key]: !f[key] }))}
+        matchCount={matchCount}
       />
 
       <div className="flex flex-1 overflow-hidden" ref={canvasRef}>
@@ -391,6 +411,7 @@ function AppInner() {
           selectedNodeIds={selectedNodeIds}
           onShiftClickNode={handleShiftClickNode}
           onClearSelection={() => setSelectedNodeIds(new Set())}
+          onScreenToWorldReady={(fn) => { screenToWorldRef.current = fn; }}
         />
         <PhysicsPanel
           open={physicsOpen}
@@ -408,7 +429,8 @@ function AppInner() {
         <span>{themeCount} themes</span>
         <span>{subthemeCount} subthemes</span>
         <span>{codeCount} codes</span>
-        <span style={{ color: '#dc2626' }}>{unassignedCount} unassigned</span>
+        {/* #ef4444 (not #dc2626) — meets 4.5:1 on the near-black bar */}
+        <span style={{ color: '#ef4444' }}>{unassignedCount} unassigned</span>
       </div>
 
       {/* Modals */}

@@ -50,3 +50,28 @@ export function getNodeSize(node) {
 export function getNodeRadius(node) {
   return getNodeSize(node).diameter / 2;
 }
+
+/**
+ * Search matching — single source of truth for Canvas (highlighting) and
+ * Toolbar (match count announcement).
+ *
+ * @param {Array} nodes
+ * @param {string} query
+ * @param {{themes: boolean, subthemes: boolean, codes: boolean}} filters
+ * @returns {Set<string>} ids of matching nodes (empty Set when query is blank)
+ */
+export function getMatchedNodeIds(nodes, query, filters) {
+  const lowerQuery = (query || '').toLowerCase().trim();
+  if (!lowerQuery) return new Set();
+  return new Set(
+    nodes
+      .filter(n => {
+        const typeMatch =
+          (n.type === 'theme'    && filters.themes) ||
+          (n.type === 'subtheme' && filters.subthemes) ||
+          (n.type === 'code'     && filters.codes);
+        return typeMatch && (n.label || '').toLowerCase().includes(lowerQuery);
+      })
+      .map(n => n.id)
+  );
+}

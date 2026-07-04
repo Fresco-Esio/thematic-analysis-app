@@ -22,7 +22,7 @@ import jsPDF from 'jspdf';
 export async function exportToPng(element, filename = 'thematic-map') {
   if (!element) throw new Error('exportToPng: canvas element is null — ensure canvasRef is mounted');
   const canvas = await html2canvas(element, {
-    backgroundColor: '#0f172a', // match app background
+    backgroundColor: '#f0ebe3', // match app canvas background
     scale: 2,                   // 2x for retina quality
     useCORS: true,
     logging: false,
@@ -45,7 +45,7 @@ export async function exportToPng(element, filename = 'thematic-map') {
 export async function exportToPdf(element, filename = 'thematic-map') {
   if (!element) throw new Error('exportToPdf: canvas element is null — ensure canvasRef is mounted');
   const canvas = await html2canvas(element, {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f0ebe3',
     scale: 2,
     useCORS: true,
     logging: false,
@@ -63,14 +63,14 @@ export async function exportToPdf(element, filename = 'thematic-map') {
   pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
   // Footer bar
-  pdf.setFillColor(30, 41, 59); // #1e293b
+  pdf.setFillColor(15, 13, 10); // #0f0d0a near-black ink
   pdf.rect(0, imgHeight, imgWidth, 40, 'F');
 
   // Footer text
-  pdf.setTextColor(148, 163, 184); // #94a3b8
+  pdf.setTextColor(240, 235, 227); // #f0ebe3 cream
   pdf.setFontSize(12);
   pdf.text('ThematicMap', 16, imgHeight + 26);
-  pdf.setTextColor(100, 116, 139); // #64748b
+  pdf.setTextColor(163, 155, 146); // muted warm gray
   pdf.text(new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }), imgWidth - 16, imgHeight + 26, { align: 'right' });
 
   pdf.save(`${filename}-${datestamp()}.pdf`);

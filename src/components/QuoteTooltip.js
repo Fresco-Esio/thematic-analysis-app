@@ -57,9 +57,15 @@ export default function QuoteTooltip({ visible, x, y, code, quote, source, color
           </p>
 
           {/* Raw quote */}
-          <p className="text-base italic leading-relaxed mb-3" style={{ color: '#0f0d0a' }}>
-            "{quote}"
-          </p>
+          {quote ? (
+            <p className="text-base italic leading-relaxed mb-3" style={{ color: '#0f0d0a' }}>
+              "{quote}"
+            </p>
+          ) : (
+            <p className="text-base leading-relaxed mb-3" style={{ color: '#6b6560' }}>
+              No quote recorded — right-click to add one.
+            </p>
+          )}
 
           {/* Source */}
           <p className="text-base font-semibold uppercase tracking-wide" style={{ color: '#6b6560' }}>

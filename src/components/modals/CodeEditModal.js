@@ -49,7 +49,7 @@ export default function CodeEditModal({ nodeId, onClose }) {
   }
 
   function handleDelete() {
-    if (window.confirm(`Delete code node "${node.label}"? This cannot be undone.`)) {
+    if (window.confirm(`Delete code node "${node.label}"? (You can undo with Ctrl+Z)`)) {
       dispatch({ type: 'DELETE_NODE', id: nodeId });
       onClose();
     }
@@ -69,6 +69,7 @@ export default function CodeEditModal({ nodeId, onClose }) {
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder="Enter data code label…"
+          autoFocus
         />
 
         {/* Quote text */}

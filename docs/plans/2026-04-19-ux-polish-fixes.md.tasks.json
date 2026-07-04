@@ -1,0 +1,12 @@
+{
+  "planPath": "docs/plans/2026-04-19-ux-polish-fixes.md",
+  "tasks": [
+    {"id": 1, "subject": "Task 1: Double-Click to Open Edit Modal on Any Node", "status": "completed"},
+    {"id": 2, "subject": "Task 2: Auto-Number New Nodes on Creation", "status": "completed"},
+    {"id": 3, "subject": "Task 3: Empty-State Overlay When Canvas Has No Nodes", "status": "completed"},
+    {"id": 4, "subject": "Task 4: Connect Mode Active Button State and Canvas Hint Text", "status": "completed"},
+    {"id": 5, "subject": "Task 5: Cursor Styling — Default on Canvas Background, Grab on Nodes", "status": "completed"},
+    {"id": 6, "subject": "Task 6: Human-Readable Physics Slider Labels", "status": "completed"}
+  ],
+  "lastUpdated": "2026-04-19T00:00:00.000Z"
+}

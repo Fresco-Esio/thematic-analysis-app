@@ -30,7 +30,8 @@ function TbBtn({ children, onClick, variant = 'secondary', active = false, disab
     secondary: active
       ? 'bg-white text-[#dc2626] border-[#dc2626]'
       : 'bg-transparent text-white border-white hover:bg-white hover:text-[#0f0d0a]',
-    danger: 'bg-transparent text-[#dc2626] border-[#dc2626] hover:bg-[#dc2626] hover:text-white',
+    // #ef4444 (not #dc2626) for text on the near-black bar — meets 4.5:1
+    danger: 'bg-transparent text-[#ef4444] border-[#ef4444] hover:bg-[#dc2626] hover:border-[#dc2626] hover:text-white',
   };
   const disabledClass = disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : '';
   return (
@@ -125,6 +126,11 @@ export default function Toolbar({
               className="text-base text-[#0f0d0a] border-2 border-white px-3 py-2 w-52 focus:outline-none focus:border-[#dc2626] font-bold"
               style={{ backgroundColor: '#ffffff' }}
             />
+            {searchQuery.trim() && (
+              <span className="text-base font-bold text-white whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {matchCount} {matchCount === 1 ? 'match' : 'matches'}
+              </span>
+            )}
             <TbBtn
               onClick={() => onSearchFilterChange('themes')}
               active={searchFilters.themes}

@@ -155,3 +155,63 @@ test('BULK_ASSIGN_THEME with non-existent targetId returns state unchanged', () 
   const next = graphReducer(bulkBaseState, { type: 'BULK_ASSIGN_THEME', nodeIds: ['c1'], targetId: 'does-not-exist' });
   expect(next).toBe(bulkBaseState); // referential equality — no new object
 });
+
+test('UPDATE_NODE theme color change cascades to assigned codes and subthemes in one action', () => {
+  const state = {
+    nodes: [
+      { id: 't1', type: 'theme',    label: 'Theme 1',    color: '#4f46e5' },
+      { id: 's1', type: 'subtheme', label: 'Subtheme 1', color: '#4f46e5', primaryThemeId: 't1' },
+      { id: 'c1', type: 'code',     label: 'Code 1',     color: '#4f46e5', primaryThemeId: 't1' },
+      { id: 'c2', type: 'code',     label: 'Code 2',     color: '#6b7280', primaryThemeId: null },
+    ],
+    edges: [],
+  };
+  const next = graphReducer(state, { type: 'UPDATE_NODE', id: 't1', changes: { color: '#059669' } });
+  expect(next.nodes.find(n => n.id === 't1').color).toBe('#059669');
+  expect(next.nodes.find(n => n.id === 's1').color).toBe('#059669');
+  expect(next.nodes.find(n => n.id === 'c1').color).toBe('#059669');
+  expect(next.nodes.find(n => n.id === 'c2').color).toBe('#6b7280'); // unassigned untouched
+});
+
+test('UPDATE_NODE without color change does not cascade', () => {
+  const state = {
+    nodes: [
+      { id: 't1', type: 'theme', label: 'Theme 1', color: '#4f46e5' },
+      { id: 'c1', type: 'code',  label: 'Code 1',  color: '#4f46e5', primaryThemeId: 't1' },
+    ],
+    edges: [],
+  };
+  const next = graphReducer(state, { type: 'UPDATE_NODE', id: 't1', changes: { label: 'Renamed' } });
+  expect(next.nodes.find(n => n.id === 'c1')).toEqual(state.nodes[1]);
+});
+
+test('ADD_EDGE to a subtheme resolves primaryThemeId to the parent theme', () => {
+  const state = {
+    nodes: [
+      { id: 't1', type: 'theme',    label: 'Theme 1',    color: '#4f46e5' },
+      { id: 's1', type: 'subtheme', label: 'Subtheme 1', color: '#4f46e5', primaryThemeId: 't1' },
+      { id: 'c1', type: 'code',     label: 'Code 1',     color: '#6b7280', primaryThemeId: null },
+    ],
+    edges: [],
+  };
+  const next = graphReducer(state, { type: 'ADD_EDGE', edge: { id: 'e1', source: 'c1', target: 's1' } });
+  const c1 = next.nodes.find(n => n.id === 'c1');
+  expect(c1.primaryThemeId).toBe('t1');
+  expect(c1.color).toBe('#4f46e5');
+  expect(next.edges).toHaveLength(1);
+  expect(next.edges[0].target).toBe('s1');
+});
+
+test('ADD_EDGE to a theme still assigns primaryThemeId directly', () => {
+  const state = {
+    nodes: [
+      { id: 't1', type: 'theme', label: 'Theme 1', color: '#4f46e5' },
+      { id: 'c1', type: 'code',  label: 'Code 1',  color: '#6b7280', primaryThemeId: null },
+    ],
+    edges: [],
+  };
+  const next = graphReducer(state, { type: 'ADD_EDGE', edge: { id: 'e1', source: 'c1', target: 't1' } });
+  const c1 = next.nodes.find(n => n.id === 'c1');
+  expect(c1.primaryThemeId).toBe('t1');
+  expect(c1.color).toBe('#4f46e5');
+});
