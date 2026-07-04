@@ -30,6 +30,9 @@ export default function WallCard({ node, position, contested = false, inTray = f
       onKeyUp={onKeyUp}
       style={{
         position: inTray ? 'relative' : 'absolute',
+        // Above region label plates (zIndex 1) — a card must always win the
+        // pointer, or it becomes ungrabbable when it sits under a plate
+        zIndex: inTray ? undefined : 2,
         left: inTray ? undefined : position.x - CARD_W / 2,
         top:  inTray ? undefined : position.y - CARD_H / 2,
         width: CARD_W, minHeight: CARD_H,
