@@ -13,7 +13,7 @@ export const CARD_H = 96;
 
 export default function WallCard({ node, position, contested = false, inTray = false,
   rotate = 0, pileCount = 0, onPileClick,
-  onPointerDown, onPointerMove, onPointerUp, onContextMenu, onKeyDown }) {
+  onPointerDown, onPointerMove, onPointerUp, onContextMenu, onKeyDown, onKeyUp }) {
   const quoteLine = (node.quote || '').split('\n')[0];
   return (
     <div
@@ -27,6 +27,7 @@ export default function WallCard({ node, position, contested = false, inTray = f
       onPointerUp={onPointerUp}
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
+      onKeyUp={onKeyUp}
       style={{
         position: inTray ? 'relative' : 'absolute',
         left: inTray ? undefined : position.x - CARD_W / 2,

@@ -80,6 +80,12 @@ export default function WallRegion({ region, color, label, zoomK, onCommitRect, 
         onPointerDown={(e) => handlePointerDown('move', e)}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          const r = e.currentTarget.getBoundingClientRect();
+          onContextMenu?.(r.left + r.width / 2, r.top + r.height / 2);
+        }}
         style={{
           position: 'absolute',
           top: -3,

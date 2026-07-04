@@ -55,6 +55,8 @@ export default function WallView({ onContextMenu }) {
   // position source of truth (state below is only for rendering and may lag
   // a frame behind the pointer)
   const dragStateRef = useRef(null);
+  // Pending keyboard move: { nodeId, pos } — committed on keyup
+  const keyMoveRef = useRef(null);
   // Live positions during a drag (id → world {x, y}); cleared on release
   const [dragPositions, setDragPositions] = useState(() => new Map());
   // Ids of the pile currently fanned out (cleared on next wall click)
@@ -166,17 +168,59 @@ export default function WallView({ onContextMenu }) {
     });
     if (!dropPos) return; // tray drag released before reaching the wall
 
-    dispatch({ type: 'UPDATE_NODE', id: node.id, changes: { wallPosition: dropPos } });
+    commitDrop(node, dropPos);
+  }
 
-    // Placement IS assignment: an unambiguous drop into a region assigns the
-    // code to that theme; a drop onto empty wall unassigns. BULK_ASSIGN_THEME
-    // already sets primaryThemeId + color and creates the edge — reuse it.
+  /**
+   * Persist a card's position and apply placement-as-assignment: an
+   * unambiguous drop into a region assigns the code to that theme; a drop
+   * onto empty wall unassigns. BULK_ASSIGN_THEME already sets
+   * primaryThemeId + color and creates the edge — reuse it.
+   */
+  function commitDrop(node, dropPos) {
+    dispatch({ type: 'UPDATE_NODE', id: node.id, changes: { wallPosition: dropPos } });
     const decision = assignmentAfterDrop(cardRect(dropPos), regions || [], node.primaryThemeId);
     if (decision.assignTo) {
       dispatch({ type: 'BULK_ASSIGN_THEME', nodeIds: [node.id], targetId: decision.assignTo });
     } else if (decision.unassign) {
       dispatch({ type: 'UNASSIGN_CODE', id: node.id });
     }
+  }
+
+  // ── Keyboard: arrows move a wall card (8px, 1px with Shift), committed on
+  // keyup; Enter/Space opens the context menu at the card center (same
+  // synthetic pattern as GraphNode) ─────────────────────────────────────────
+  function handleCardKeyDown(node, renderPos, e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      onContextMenu?.('code', node.id, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return;
+    }
+    const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const dir = ARROWS[e.key];
+    if (!dir || !renderPos) return; // tray cards don't move by keyboard
+    e.preventDefault();
+    e.stopPropagation();
+    const step = e.shiftKey ? 1 : 8;
+    const cur = keyMoveRef.current?.nodeId === node.id ? keyMoveRef.current.pos : renderPos;
+    const pos = { x: cur.x + dir[0] * step, y: cur.y + dir[1] * step };
+    keyMoveRef.current = { nodeId: node.id, pos };
+    setDragPositions(prev => new Map(prev).set(node.id, pos));
+  }
+
+  function handleCardKeyUp(node, e) {
+    const km = keyMoveRef.current;
+    if (!km || km.nodeId !== node.id) return;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+    keyMoveRef.current = null;
+    setDragPositions(prev => {
+      if (!prev.has(node.id)) return prev;
+      const next = new Map(prev);
+      next.delete(node.id);
+      return next;
+    });
+    commitDrop(node, km.pos);
   }
 
   // ── Derived render sets ───────────────────────────────────────────────────
@@ -284,6 +328,7 @@ export default function WallView({ onContextMenu }) {
                 onPointerMove={(e) => handleCardPointerMove(node, e)}
                 onPointerUp={(e) => handleCardPointerUp(node, e)}
                 onContextMenu={(e) => handleCardContextMenu(node, e)}
+                onKeyDown={(e) => handleCardKeyDown(node, null, e)}
               />
             </div>
           );
@@ -403,6 +448,8 @@ export default function WallView({ onContextMenu }) {
                 onPointerMove={(e) => handleCardPointerMove(node, e)}
                 onPointerUp={(e) => handleCardPointerUp(node, e)}
                 onContextMenu={(e) => handleCardContextMenu(node, e)}
+                onKeyDown={(e) => handleCardKeyDown(node, renderPos, e)}
+                onKeyUp={(e) => handleCardKeyUp(node, e)}
               />
             );
           })}

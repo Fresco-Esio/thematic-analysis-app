@@ -579,3 +579,22 @@ test('24 — placing a card in a region assigns its theme; empty wall unassigns'
     expect((await statusCounts(page)).unassigned).toBe(1);
   }).toPass({ timeout: 3000 });
 });
+
+// ── 25. Keyboard support on the Wall ─────────────────────────────────────────
+
+test('25 — keyboard moves a wall card and opens its menu', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Code/i }).click();
+  await page.getByRole('button', { name: /Wall/ }).click();
+  const card = page.locator('[data-card-id]').first();
+  await card.focus();
+  const before = await card.boundingBox();
+
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  await expect(async () => {
+    const after = await card.boundingBox();
+    expect(after.x).toBeGreaterThan(before.x + 30); // 5 × 8px
+  }).toPass({ timeout: 3000 });
+
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menuitem', { name: /Edit Code/ })).toBeVisible();
+});
