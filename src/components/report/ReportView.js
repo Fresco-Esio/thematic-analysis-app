@@ -13,7 +13,7 @@
  * Present mode: full-screen scroll with fixed mini-map and active chapter tracking.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
 import { effectiveSections } from '../../utils/reportUtils';
 import ReportChapter from './ReportChapter';
@@ -64,10 +64,10 @@ export default function ReportView() {
   /**
    * Exit present mode back to edit
    */
-  function handleExitPresent() {
+  const handleExitPresent = useCallback(() => {
     setMode('edit');
     setActiveThemeId(null);
-  }
+  }, []);
 
   /**
    * Track active chapter while scrolling in present mode
@@ -105,7 +105,7 @@ export default function ReportView() {
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode]);
+  }, [mode, handleExitPresent]);
 
   // Empty state: no themes and no stored sections
   if (!hasThemes && !hasStoredSections) {
@@ -175,6 +175,7 @@ export default function ReportView() {
                 key={section.themeId}
                 ref={(el) => {
                   if (el) chapterRefsRef.current[section.themeId] = el;
+                  else delete chapterRefsRef.current[section.themeId];
                 }}
               >
                 <ReportChapter

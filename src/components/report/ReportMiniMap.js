@@ -40,7 +40,6 @@ export default function ReportMiniMap({ regions, nodes, activeThemeId }) {
     <div
       data-testid="report-minimap"
       style={{
-        fixed: 'bottom',
         position: 'fixed',
         bottom: '16px',
         right: '16px',
