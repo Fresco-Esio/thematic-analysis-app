@@ -7,6 +7,7 @@
  *   nodes   — array of { id, type, label, x, y, wallPosition?, ...typeSpecificFields }
  *   edges   — array of { id, source, target }
  *   regions — array of { id, themeId, rect: { x, y, w, h } } (Wall view theme areas)
+ *   report  — { sections: [{ themeId, proseBlocks: [{id, text}], pullQuoteIds: [codeId] }] } (Living Report chapters; ids reference nodes — renames flow through, deletions tombstone)
  *
  * NODE TYPES:
  *   "theme"    — { id, type:"theme",    label, color, x, y }
@@ -25,6 +26,12 @@
  *   UPDATE_REGION { id, changes }             — rect-only changes are not undoable
  *   DELETE_REGION { id }
  *   UNASSIGN_CODE { id }                      — clear primaryThemeId + color + theme edge atomically
+ *   REPORT_ADD_BLOCK { themeId, blockId }     — upsert section, append empty block
+ *   REPORT_UPDATE_BLOCK { themeId, blockId, text } — update block text
+ *   REPORT_DELETE_BLOCK { themeId, blockId }  — remove block
+ *   REPORT_SET_ORDER { themeIds }             — reorder and materialize sections
+ *   REPORT_ADD_PULL_QUOTE { themeId, codeId } — add code reference (idempotent)
+ *   REPORT_REMOVE_PULL_QUOTE { themeId, codeId } — remove code reference
  *   SET_GRAPH     { nodes, edges, regions? }  — full replace (used by localStorage restore)
  *   CLEAR         {}                          — wipe everything
  */
@@ -60,6 +67,11 @@ const STORAGE_KEY    = 'thematic_analysis_graph_v2';
 /** Default region size seeded around a theme's last physics position */
 const SEED_REGION = { w: 440, h: 320 };
 
+/** Fill top-level keys missing from older saves. Exported for tests. */
+export function withDefaults(parsed) {
+  return { regions: [], report: { sections: [] }, ...parsed };
+}
+
 /**
  * Pure v1 → v2 migration. Exported for tests.
  * v2 adds `wallPosition` per node (seeded from physics x/y) and a `regions`
@@ -79,7 +91,7 @@ export function migrateV1ToV2(v1) {
       themeId: t.id,
       rect: { x: t.x - SEED_REGION.w / 2, y: t.y - SEED_REGION.h / 2, ...SEED_REGION },
     }));
-  return { nodes, edges: v1.edges, regions };
+  return { nodes, edges: v1.edges, regions, report: { sections: [] } };
 }
 
 // ── Initial state ─────────────────────────────────────────────────────────────
@@ -88,9 +100,17 @@ const initialState = {
   nodes: [],
   edges: [],
   regions: [],
+  report: { sections: [] },
 };
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
+
+/** Return a report whose sections include themeId (upsert, order-preserving). */
+function upsertSection(report, themeId) {
+  const sections = report?.sections ?? [];
+  if (sections.some(s => s.themeId === themeId)) return { sections };
+  return { sections: [...sections, { themeId, proseBlocks: [], pullQuoteIds: [] }] };
+}
 
 export function graphReducer(state, action) {
   switch (action.type) {
@@ -318,11 +338,95 @@ export function graphReducer(state, action) {
       };
     }
 
+    case 'REPORT_ADD_BLOCK': {
+      const report = upsertSection(state.report, action.themeId);
+      return {
+        ...state,
+        report: {
+          sections: report.sections.map(s =>
+            s.themeId === action.themeId
+              ? { ...s, proseBlocks: [...s.proseBlocks, { id: action.blockId, text: '' }] }
+              : s
+          ),
+        },
+      };
+    }
+
+    case 'REPORT_UPDATE_BLOCK': {
+      return {
+        ...state,
+        report: {
+          sections: (state.report?.sections ?? []).map(s =>
+            s.themeId === action.themeId
+              ? { ...s, proseBlocks: s.proseBlocks.map(b => (b.id === action.blockId ? { ...b, text: action.text } : b)) }
+              : s
+          ),
+        },
+      };
+    }
+
+    case 'REPORT_DELETE_BLOCK': {
+      return {
+        ...state,
+        report: {
+          sections: (state.report?.sections ?? []).map(s =>
+            s.themeId === action.themeId
+              ? { ...s, proseBlocks: s.proseBlocks.filter(b => b.id !== action.blockId) }
+              : s
+          ),
+        },
+      };
+    }
+
+    case 'REPORT_SET_ORDER': {
+      const existing = new Map((state.report?.sections ?? []).map(s => [s.themeId, s]));
+      return {
+        ...state,
+        report: {
+          sections: action.themeIds.map(id =>
+            existing.get(id) ?? { themeId: id, proseBlocks: [], pullQuoteIds: [] }
+          ),
+        },
+      };
+    }
+
+    case 'REPORT_ADD_PULL_QUOTE': {
+      const report = upsertSection(state.report, action.themeId);
+      return {
+        ...state,
+        report: {
+          sections: report.sections.map(s =>
+            s.themeId === action.themeId && !s.pullQuoteIds.includes(action.codeId)
+              ? { ...s, pullQuoteIds: [...s.pullQuoteIds, action.codeId] }
+              : s
+          ),
+        },
+      };
+    }
+
+    case 'REPORT_REMOVE_PULL_QUOTE': {
+      return {
+        ...state,
+        report: {
+          sections: (state.report?.sections ?? []).map(s =>
+            s.themeId === action.themeId
+              ? { ...s, pullQuoteIds: s.pullQuoteIds.filter(id => id !== action.codeId) }
+              : s
+          ),
+        },
+      };
+    }
+
     case 'SET_GRAPH':
-      return { nodes: action.nodes, edges: action.edges, regions: action.regions ?? [] };
+      return {
+        nodes: action.nodes,
+        edges: action.edges,
+        regions: action.regions ?? [],
+        report: action.report ?? { sections: [] },
+      };
 
     case 'CLEAR':
-      return { nodes: [], edges: [], regions: [] };
+      return { nodes: [], edges: [], regions: [], report: { sections: [] } };
 
     default:
       return state;
@@ -404,8 +508,8 @@ export function GraphProvider({ children }) {
       if (savedV2) {
         const parsed = JSON.parse(savedV2);
         if (parsed.nodes && parsed.edges) {
-          // `{ regions: [], ...parsed }` — v2 saves written before regions existed still load
-          return { past: [], present: { regions: [], ...parsed }, future: [] };
+          // `withDefaults()` — v2 saves written before regions/report existed still load
+          return { past: [], present: withDefaults(parsed), future: [] };
         }
       }
       // First run on v2: migrate from v1 if present. The v1 key is never
