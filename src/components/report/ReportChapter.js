@@ -468,11 +468,11 @@ export default function ReportChapter({
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontStyle: 'italic', marginBottom: '8px', color: '#374151' }}>
+                    <div style={{ fontSize: '15px', fontStyle: 'italic', marginBottom: '8px', color: '#374151' }}>
                       {q.quote || <span style={{ color: '#9ca3af' }}>No quote recorded</span>}
                     </div>
                     <div style={{ fontWeight: 600, marginBottom: '4px' }}>{q.label}</div>
-                    <div style={{ fontSize: '11px', letterSpacing: '0.05em', color: '#6b7280', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '12px', letterSpacing: '0.05em', color: '#6b7280', textTransform: 'uppercase' }}>
                       {q.source}
                     </div>
                   </>
