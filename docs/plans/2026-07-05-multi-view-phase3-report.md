@@ -25,7 +25,7 @@
 - **Unit tests in this worktree need a testMatch override** (jest globs don't traverse dot-directories):
   `$env:CI="true"; npx react-scripts test --watchAll=false --testMatch "**/.claude/**/src/**/*.{spec,test}.{js,jsx,ts,tsx}"`
 - E2E: `npx playwright test --reporter=list` (port 3000 free; auto-starts dev server). Single test: `-g "<title fragment>"`.
-- Baseline entering this phase: **88 unit tests after Tasks 1–2 (65 today), 28 E2E today.**
+- Baseline entering this phase: **89 unit tests after Tasks 1–2 (65 today), 28 E2E today.**
 - PowerShell is the shell. Do not run `npm install <pkg>` (prunes the no-save `@playwright/test`; nothing new is needed).
 
 ## File Structure
@@ -35,7 +35,7 @@
 | `src/context/GraphContext.js` | Modify | `report` state key, `REPORT_*` reducer cases, persistence defaults, `withDefaults()` helper. **Bug #10 audit**: every object-literal return must carry `report`. |
 | `src/context/GraphContext.report.test.js` | Create | 11 reducer/persistence tests. |
 | `src/utils/reportUtils.js` | Create | Pure: `effectiveSections()`, `parseInline()`, `pullQuoteFor()`. No React, no d3. |
-| `src/utils/reportUtils.test.js` | Create | 12 tests. |
+| `src/utils/reportUtils.test.js` | Create | 13 tests. |
 | `src/components/report/ReportView.js` | Create | Mode state (edit/present), chapter list, empty state, present overlay, print root ids. |
 | `src/components/report/ReportChapter.js` | Create | One chapter: color header, prose blocks (blur-commit), pull-quote margin, code tray, reorder buttons. |
 | `src/components/report/ReportMiniMap.js` | Create | Static SVG wall render; active region highlight. |
@@ -338,9 +338,9 @@ git commit -m "feat: report state - sections/blocks/pull-quote reducer actions, 
 - [ ] `effectiveSections(report, nodes)`: stored sections keep order with live `theme` attached; sections whose theme was deleted get `theme: null`; themes with no stored section are appended in node order with empty blocks/quotes
 - [ ] `parseInline(text)`: `**bold**` → bold token, `*italic*` → italic token, unmatched markers stay literal text, empty string → `[]`
 - [ ] `pullQuoteFor(codeId, nodes)`: live code → `{tombstone: false, label, quote, source, color}`; missing/non-code id → `{tombstone: true, ...}`
-- [ ] No React/d3 imports; all 12 tests pass; suite total 88
+- [ ] No React/d3 imports; all 13 tests pass; suite total 89
 
-**Verify:** `$env:CI="true"; npx react-scripts test --watchAll=false --testMatch "**/.claude/**/src/**/*.{spec,test}.{js,jsx,ts,tsx}"` → `Test Suites: 7 passed` / `Tests: 88 passed`
+**Verify:** `$env:CI="true"; npx react-scripts test --watchAll=false --testMatch "**/.claude/**/src/**/*.{spec,test}.{js,jsx,ts,tsx}"` → `Test Suites: 7 passed` / `Tests: 89 passed`
 
 **Steps:**
 
@@ -509,7 +509,7 @@ export function pullQuoteFor(codeId, nodes) {
 
 Note on `'2 ** 3'`: the bold alternative requires a non-star char between the markers and the italic alternative can't span the inner ` ** `, so neither matches — the whole string stays one literal text token. (`*italic*` still matches because `[^*]+` accepts spaces.)
 
-- [ ] **Step 4: Full unit suite** → `Test Suites: 7 passed` / `Tests: 88 passed`
+- [ ] **Step 4: Full unit suite** → `Test Suites: 7 passed` / `Tests: 89 passed`
 
 - [ ] **Step 5: Commit**
 
@@ -597,7 +597,7 @@ test('29 — Report view seeds a chapter per theme', async ({ page }) => {
 - [ ] Delete removes the block after confirm
 - [ ] ↑/↓ reorder chapters and the order survives view switches (REPORT_SET_ORDER materializes)
 - [ ] `**bold**` typed in a block renders as `<strong>` after blur
-- [ ] Extended e2e 29 passes; unit suite stays 88
+- [ ] Extended e2e 29 passes; unit suite stays 89
 
 **Verify:** `npx playwright test -g "Report view seeds chapters" --reporter=list` → `1 passed`
 
@@ -655,7 +655,7 @@ test('29 — Report view seeds a chapter per theme and saves prose on blur', asy
 - [ ] HTML5 drag from chip to margin also adds (manual/preview verification — not e2e)
 - [ ] Removing works; deleting the code node in Graph view leaves a tombstone note in the margin
 - [ ] Present-mode rendering unaffected for now (margin renders; no tray, no buttons — guard everything editorial behind `mode === 'edit'`)
-- [ ] E2E test 30 passes; suites stay green (88 unit / 30 e2e)
+- [ ] E2E test 30 passes; suites stay green (89 unit / 30 e2e)
 
 **Verify:** `npx playwright test -g "pull quotes render and tombstone" --reporter=list` → `1 passed`
 
@@ -800,7 +800,7 @@ test('31 — present mode shows the mini-map and Escape returns to edit', async 
 
 ## Task 7: Full-suite verification gate + docs (coordinator-run)
 
-**Goal:** Prove the full unit suite (88 tests, 7 suites) and full E2E suite (31 tests) pass with all pre-existing tests green, production build compiles, and CLAUDE.md documents Phase 3.
+**Goal:** Prove the full unit suite (89 tests, 7 suites) and full E2E suite (31 tests) pass with all pre-existing tests green, production build compiles, and CLAUDE.md documents Phase 3.
 
 > **USER-ORDERED GATE — NON-SKIPPABLE.** This task was requested by the user in the current conversation. It MUST NOT be closed by walking around it, by declaring it "verified inline", or by substituting a cheaper check. Close only after every item in `acceptanceCriteria` has been re-validated independently, with output captured.
 
@@ -808,13 +808,13 @@ test('31 — present mode shows the mini-map and Escape returns to edit', async 
 - Modify: `CLAUDE.md`
 
 **Acceptance Criteria:**
-- [ ] Full unit suite output captured: `Test Suites: 7 passed` / `Tests: 88 passed` — no pre-existing test broken
+- [ ] Full unit suite output captured: `Test Suites: 7 passed` / `Tests: 89 passed` — no pre-existing test broken
 - [ ] Full E2E suite output captured: `31 passed` — no pre-existing test broken
 - [ ] `npm run build` compiles; `npx eslint src/components/report src/utils/reportUtils.js src/context/GraphContext.js --max-warnings 0` reports clean (pre-existing Canvas.js warning is tracked separately — not in scope)
-- [ ] CLAUDE.md updated: commands (88 unit / 31 E2E), view row adds `'report'`, Key Files adds `report/` + `reportUtils.js`, State Shape adds `report`, reducer actions list adds the six `REPORT_*` actions, Export-ID bullet notes the report edit root, e2e count line
+- [ ] CLAUDE.md updated: commands (89 unit / 31 E2E), view row adds `'report'`, Key Files adds `report/` + `reportUtils.js`, State Shape adds `report`, reducer actions list adds the six `REPORT_*` actions, Export-ID bullet notes the report edit root, e2e count line
 - [ ] All working-tree changes committed
 
-**Verify:** `$env:CI="true"; npx react-scripts test --watchAll=false --testMatch "**/.claude/**/src/**/*.{spec,test}.{js,jsx,ts,tsx}"` → `Tests: 88 passed, 88 total`; `npx playwright test --reporter=list` → `31 passed`; `npm run build` → compiles
+**Verify:** `$env:CI="true"; npx react-scripts test --watchAll=false --testMatch "**/.claude/**/src/**/*.{spec,test}.{js,jsx,ts,tsx}"` → `Tests: 89 passed, 89 total`; `npx playwright test --reporter=list` → `31 passed`; `npm run build` → compiles
 
 **Steps:** run and capture the three verify commands → eslint the new files → apply the CLAUDE.md edits (exact deltas mirror the Phase 2 pattern; the reducer-actions line becomes `… UNASSIGN_CODE REPORT_ADD_BLOCK REPORT_UPDATE_BLOCK REPORT_DELETE_BLOCK REPORT_SET_ORDER REPORT_ADD_PULL_QUOTE REPORT_REMOVE_PULL_QUOTE SET_GRAPH CLEAR`; State Shape gains `report: { sections: [{ themeId, proseBlocks: [{id, text}], pullQuoteIds }] }` with a one-line tombstone note) → commit `test+docs: phase-3 verification, CLAUDE.md living-report updates`.
 

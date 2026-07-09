@@ -16,9 +16,9 @@ This is a **React-based visual workspace** for **Braun & Clarke Reflexive Themat
 
 ```bash
 npm start              # dev server on http://localhost:3000
-npm test               # Jest unit tests (65 tests, 5 suites) — watchAll=false for CI
+npm test               # Jest unit tests (89 tests, 7 suites) — watchAll=false for CI
 npm run build          # production bundle → build/
-npm run test:e2e       # Playwright E2E (28 tests, Chromium, auto-starts dev server)
+npm run test:e2e       # Playwright E2E (31 tests, Chromium, auto-starts dev server)
 npx playwright test --reporter=list   # verbose E2E output
 ```
 
@@ -56,6 +56,14 @@ src/
     QuoteTooltip.js             Floating tooltip on code hover (AnimatePresence fade)
     nodes/
       GraphNode.js              Unified node component — theme or code variant based on node.type
+    report/
+      ReportView.js             Living Report — edit/present modes, chapter list, scroll-tracked
+                                active theme, print root; imports reportPrint.css
+      ReportChapter.js          One theme chapter — color header, blur-commit prose blocks,
+                                pull-quote margin, per-chapter code tray, reorder buttons
+      ReportMiniMap.js          Present-mode fixed mini-map — static SVG wall render,
+                                active region highlighted
+      reportPrint.css           @media print stylesheet — isolates #report-print-root
     sankey/
       SankeyView.js             Sankey of Evidence — fixed 16:10 figure, hover path highlight,
                                 theme isolation, code click → CodeEditModal, subtheme toggle
@@ -76,8 +84,10 @@ src/
                                 isContested, clusterPiles, stringAnchorOnRegion
     sankeyTransform.js          Pure transform: graph → d3-sankey nodes/links, Unassigned sink,
                                 "No source" bucket, single-source grounding warnings. No d3 imports.
+    reportUtils.js              Pure report helpers — effectiveSections (auto-seed + tombstones),
+                                parseInline (**bold**/*italic* tokens), pullQuoteFor. No React/d3.
     motionConfig.js             Shared Framer Motion animation variants
-e2e/app.spec.js                 28 Playwright E2E tests
+e2e/app.spec.js                 31 Playwright E2E tests
 playwright.config.js            Chromium, headless, webServer auto-start on port 3000
 docs/samples/thematic-import-sample.csv   Sample import file
 ```
@@ -101,11 +111,15 @@ docs/samples/thematic-import-sample.csv   Sample import file
 
 // Region — a theme's territory on the Wall view
 { id: 'region-<themeId>', themeId, rect: { x, y, w, h } }
+
+// Report — Living Report chapters (ids reference nodes: renames flow through,
+// deleted themes/codes render as tombstones — never cascade-deleted)
+{ sections: [{ themeId, proseBlocks: [{ id, text }], pullQuoteIds: [codeId] }] }
 ```
 
 `wallPosition` (`{x, y}`) is the card's **authored** position on the Wall — independent of the physics `x`/`y`. Codes with neither `primaryThemeId` nor `wallPosition` sit in the Wall's UNSORTED tray.
 
-**Reducer actions:** `ADD_NODES` `ADD_NODE` `UPDATE_NODE` `DELETE_NODE` `DELETE_NODES` `BULK_ASSIGN_THEME` `ADD_EDGE` `DELETE_EDGE` `UPDATE_EDGE` `ADD_REGION` `UPDATE_REGION` `DELETE_REGION` `UNASSIGN_CODE` `SET_GRAPH` `CLEAR`
+**Reducer actions:** `ADD_NODES` `ADD_NODE` `UPDATE_NODE` `DELETE_NODE` `DELETE_NODES` `BULK_ASSIGN_THEME` `ADD_EDGE` `DELETE_EDGE` `UPDATE_EDGE` `ADD_REGION` `UPDATE_REGION` `DELETE_REGION` `UNASSIGN_CODE` `REPORT_ADD_BLOCK` `REPORT_UPDATE_BLOCK` `REPORT_DELETE_BLOCK` `REPORT_SET_ORDER` `REPORT_ADD_PULL_QUOTE` `REPORT_REMOVE_PULL_QUOTE` `SET_GRAPH` `CLEAR`
 
 **localStorage keys:**
 - `thematic_analysis_graph_v2` — graph state (current; includes `regions` + `wallPosition`)
@@ -129,7 +143,7 @@ docs/samples/thematic-import-sample.csv   Sample import file
 | `searchQuery` | string | Current search string |
 | `searchFilters` | `{themes, codes}` | Node type filter toggles |
 | `focusThemeId` | string\|null | Active focus-view theme; null = no focus |
-| `view` | `'wall'\|'graph'\|'sankey'` | Active center panel; `'graph'` default. Graph-only toolbar actions (Connect, zoom, Fit View, Align, Physics) disable via `graphOnly` prop on `TbBtn`. Sankey is read-mostly: code click opens CodeEditModal; export id lives on its figure frame |
+| `view` | `'wall'\|'graph'\|'sankey'\|'report'` | Active center panel; `'graph'` default. Graph-only toolbar actions (Connect, zoom, Fit View, Align, Physics) disable via `graphOnly` prop on `TbBtn`. Sankey is read-mostly: code click opens CodeEditModal; export id lives on its figure frame. Report: prose commits on blur (one undo entry per edit session); ↓ PDF triggers `window.print()` via reportPrint.css instead of html2canvas |
 
 ---
 
@@ -141,7 +155,7 @@ docs/samples/thematic-import-sample.csv   Sample import file
 - **D3 / React split:** D3 owns `x`/`y` positions via force simulation. React owns rendering. Never let D3 touch the DOM. The Wall uses d3.zoom only — no simulation; card positions are authored (`wallPosition`).
 - **Wall assignment is placement:** dropping a card fully inside exactly one region assigns it (`BULK_ASSIGN_THEME`); dropping on empty wall unassigns (`UNASSIGN_CODE`); ambiguous placement keeps assignment + shows a contested "?" badge. Decision logic is pure — `assignmentAfterDrop()` in wallGeometry.js.
 - **Wall z-order:** regions → string SVG → cards, but region label plates have `zIndex: 1` so strings never cover theme names. String anchors use `stringAnchorOnRegion()` (center-ray, continuous — do not revert to nearest-edge, it snaps at corners).
-- **Export ID:** the mounted view's export root has `id="canvas-export-target"` (Canvas root, WallView root, or SankeyView's fixed-ratio figure frame — only one renders at a time). `exportUtils.js` and `App.js` both depend on this — do not rename.
+- **Export ID:** the mounted view's export root has `id="canvas-export-target"` (Canvas root, WallView root, SankeyView's fixed-ratio figure frame, or ReportView's edit root — only one renders at a time; ReportView's present overlay intentionally has none, PNG export no-ops there). `exportUtils.js` and `App.js` both depend on this — do not rename.
 - **Physics reactivity:** `useDragAndSimulation(nodes, edges, onTick, physicsParams)` — accepts `physicsParams` as a prop and has a `useEffect` calling `simulation.current.updateParams(physicsParams)` on changes.
 - **Persistence:** `useReducer` uses a **lazy initializer** (third argument) to read localStorage synchronously before first render. Do not replace this with an effect-based restore — it causes a race condition where the save effect fires with empty state before the restore dispatches.
 - **Components:** Functional components only. No class components.
