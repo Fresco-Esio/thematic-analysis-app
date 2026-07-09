@@ -194,7 +194,6 @@ export default function ReportChapter({
                 backgroundColor: 'transparent',
                 fontSize: 17,
                 lineHeight: 1.6,
-                fontFamily: 'inherit',
                 border: '2px solid #dc2626',
                 padding: '8px',
                 marginBottom: '16px',
