@@ -33,3 +33,9 @@ export const tooltipVariants = {
     transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
   },
 };
+
+/** Pull-quote entrance in report present mode — used with whileInView */
+export const pullQuoteVariants = {
+  hidden:  { opacity: 0, x: 24 },
+  visible: { opacity: 1, x: 0, transition: springs.entrance },
+};

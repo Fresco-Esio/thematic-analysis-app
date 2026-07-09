@@ -720,3 +720,18 @@ test('30 — pull quotes render and tombstone when their code is deleted', async
   await page.getByRole('button', { name: /Report/ }).click();
   await expect(page.locator('[data-testid="pull-quote"]').first()).toContainText(/Removed code/i);
 });
+
+// ── 31. Report present mode ─────────────────────────────────────────────────
+
+test('31 — present mode shows the mini-map and Escape returns to edit', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Theme/i }).click(); // theme ⇒ a wall region exists
+  await page.getByRole('button', { name: /Report/ }).click();
+  await page.getByRole('button', { name: /Present/ }).click();
+
+  await expect(page.locator('[data-testid="report-minimap"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Add paragraph/i })).toHaveCount(0); // edit chrome hidden
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-testid="report-minimap"]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Present/ })).toBeVisible();
+});

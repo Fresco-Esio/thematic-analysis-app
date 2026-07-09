@@ -257,6 +257,9 @@ function AppInner() {
   }
 
   async function handleExportPdf() {
+    // Report exports as a real text document via the print stylesheet
+    // (design §4) — html2canvas would rasterize the prose.
+    if (view === 'report') { window.print(); return; }
     const el = document.getElementById('canvas-export-target');
     if (el) await exportToPdf(el);
   }

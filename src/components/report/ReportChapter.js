@@ -15,8 +15,10 @@
  */
 
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useGraphDispatch, useGraph, makeId } from '../../context/GraphContext';
 import { parseInline, pullQuoteFor } from '../../utils/reportUtils';
+import { pullQuoteVariants } from '../../utils/motionConfig';
 
 export default function ReportChapter({
   section,
@@ -449,7 +451,7 @@ export default function ReportChapter({
         >
           {pullQuoteIds.map(codeId => {
             const q = pullQuoteFor(codeId, nodes);
-            return (
+            const blockquoteContent = (
               <blockquote
                 key={codeId}
                 data-testid="pull-quote"
@@ -497,6 +499,22 @@ export default function ReportChapter({
                 )}
               </blockquote>
             );
+
+            // Wrap in motion.div for present mode, raw blockquote for edit mode
+            if (mode === 'present') {
+              return (
+                <motion.div
+                  key={codeId}
+                  variants={pullQuoteVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.4 }}
+                >
+                  {blockquoteContent}
+                </motion.div>
+              );
+            }
+            return blockquoteContent;
           })}
         </div>
       </div>

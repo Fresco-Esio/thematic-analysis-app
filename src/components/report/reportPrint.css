@@ -1,0 +1,9 @@
+/* Print stylesheet — Living Report → text-selectable PDF via the browser.
+   Visibility (not display) so the report keeps its layout box in print flow. */
+@media print {
+  body * { visibility: hidden; }
+  #report-print-root, #report-print-root * { visibility: visible; }
+  #report-print-root { position: absolute; left: 0; top: 0; width: 100%; max-width: 68ch; }
+  [data-testid="report-chapter"] { break-inside: avoid-page; }
+  button, textarea { display: none !important; }
+}
