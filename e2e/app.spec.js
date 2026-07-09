@@ -689,3 +689,34 @@ test('29 — Report view seeds a chapter per theme and saves prose on blur', asy
   await page.getByRole('button', { name: /Report/ }).click();
   await expect(page.locator('[data-testid="prose-block"]').first()).toContainText('Participants described');
 });
+
+// ── 30. Report pull quotes + tombstones ─────────────────────────────────────
+
+test('30 — pull quotes render and tombstone when their code is deleted', async ({ page }) => {
+  // Seed a theme + connected code (same flow as test 4)
+  await page.getByRole('button', { name: /Add Theme/i }).click();
+  await page.getByRole('button', { name: /Add Code/i }).click();
+  await page.getByRole('button', { name: /Connect/i }).click();
+  const codeNode  = page.locator('.nodes-layer > div').filter({ hasNotText: /✓/ }).first();
+  const themeNode = page.locator('[role="button"][aria-label*="theme"]').first();
+  await codeNode.click({ force: true });
+  await themeNode.click({ force: true });
+  await page.getByRole('button', { name: /Cancel Connect/i }).click();
+
+  // Add the code as a pull quote via the tray's click affordance
+  await page.getByRole('button', { name: /Report/ }).click();
+  await page.getByRole('button', { name: /Add as pull quote/i }).first().click();
+  await expect(page.locator('[data-testid="pull-quote"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid="pull-quote"]').first()).toContainText('New Code');
+
+  // Delete the code in Graph view → tombstone note in the Report margin
+  page.on('dialog', d => d.accept());
+  await page.getByRole('button', { name: /Graph/ }).click();
+  const codeAgain = page.locator('.nodes-layer > div').filter({ hasNotText: /✓/ }).first();
+  await codeAgain.click({ button: 'right', force: true });
+  const deleteBtn = page.getByRole('menuitem', { name: /Delete Node/i });
+  await expect(deleteBtn).toBeVisible({ timeout: 3000 });
+  await deleteBtn.click();
+  await page.getByRole('button', { name: /Report/ }).click();
+  await expect(page.locator('[data-testid="pull-quote"]').first()).toContainText(/Removed code/i);
+});
