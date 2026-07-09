@@ -1,26 +1,46 @@
 /**
  * ReportView.js
  * ──────────────────────────────────────────────────────────────────────────
- * Living Report — four-view entry. Renders auto-seeded chapters in read-only
- * mode (edit mode added in Task 4, present mode in Task 6).
+ * Living Report — four-view entry. Renders auto-seeded chapters in edit mode
+ * (present mode added in Task 6).
  *
  * Derives effectiveSections from the graph: stored sections in order, plus
  * auto-seeded empty sections for themes not yet in the report (at derivation
  * time, never during render dispatch).
  *
  * Empty state when there are no themes and no stored sections.
+ * Handles chapter reordering via REPORT_SET_ORDER.
  */
 
 import React from 'react';
-import { useGraph } from '../../context/GraphContext';
+import { useGraph, useGraphDispatch } from '../../context/GraphContext';
 import { effectiveSections } from '../../utils/reportUtils';
 import ReportChapter from './ReportChapter';
 
 export default function ReportView() {
   const { nodes, report } = useGraph();
+  const dispatch = useGraphDispatch();
   const sections = effectiveSections(report, nodes);
   const hasThemes = nodes.some(n => n.type === 'theme');
   const hasStoredSections = report?.sections?.length > 0;
+
+  /**
+   * Reorder chapters: swap positions and dispatch REPORT_SET_ORDER
+   */
+  function handleMoveChapter(currentIndex, direction) {
+    const themeIds = sections.map(s => s.themeId);
+    const newIndex = currentIndex + (direction === 'up' ? -1 : 1);
+
+    if (newIndex < 0 || newIndex >= themeIds.length) return;
+
+    // Swap
+    [themeIds[currentIndex], themeIds[newIndex]] = [themeIds[newIndex], themeIds[currentIndex]];
+
+    dispatch({
+      type: 'REPORT_SET_ORDER',
+      themeIds,
+    });
+  }
 
   // Empty state: no themes and no stored sections
   if (!hasThemes && !hasStoredSections) {
@@ -59,8 +79,16 @@ export default function ReportView() {
           padding: '48px 24px',
         }}
       >
-        {sections.map(section => (
-          <ReportChapter key={section.themeId} section={section} mode="edit" />
+        {sections.map((section, index) => (
+          <ReportChapter
+            key={section.themeId}
+            section={section}
+            mode="edit"
+            onMoveUp={() => handleMoveChapter(index, 'up')}
+            onMoveDown={() => handleMoveChapter(index, 'down')}
+            isFirst={index === 0}
+            isLast={index === sections.length - 1}
+          />
         ))}
       </article>
     </div>

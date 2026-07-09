@@ -667,13 +667,25 @@ test('28 — Sankey code click opens edit modal; theme click isolates flow', asy
   await expect(page.getByText('Edit Code Node')).toBeVisible();
 });
 
-// ── 29. Report view — chapter seeding ───────────────────────────────────────
+// ── 29. Report view — chapter seeding + prose editing ───────────────────────
 
-test('29 — Report view seeds a chapter per theme', async ({ page }) => {
+test('29 — Report view seeds a chapter per theme and saves prose on blur', async ({ page }) => {
   await page.getByRole('button', { name: /Add Theme/i }).click();
   await page.getByRole('button', { name: /Report/ }).click();
   await expect(page.getByRole('button', { name: /Report/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: /Connect/ })).toBeDisabled();
   await expect(page.locator('[data-testid="report-chapter"]')).toHaveCount(1);
   await expect(page.locator('[data-testid="report-chapter"]').first()).toContainText('New Theme');
+
+  // Write a paragraph; blur commits it to the store
+  await page.getByRole('button', { name: /Add paragraph/i }).first().click();
+  const textarea = page.locator('[data-testid="prose-block"] textarea').first();
+  await textarea.fill('Participants described **checking** rituals.');
+  await textarea.blur();
+  await expect(page.locator('[data-testid="prose-block"] strong').first()).toHaveText('checking');
+
+  // Round-trip through another view proves it re-renders from state, not local memory
+  await page.getByRole('button', { name: /Graph/ }).click();
+  await page.getByRole('button', { name: /Report/ }).click();
+  await expect(page.locator('[data-testid="prose-block"]').first()).toContainText('Participants described');
 });
