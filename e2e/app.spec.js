@@ -666,3 +666,14 @@ test('28 — Sankey code click opens edit modal; theme click isolates flow', asy
   await page.getByRole('button', { name: /Edit code/ }).click();
   await expect(page.getByText('Edit Code Node')).toBeVisible();
 });
+
+// ── 29. Report view — chapter seeding ───────────────────────────────────────
+
+test('29 — Report view seeds a chapter per theme', async ({ page }) => {
+  await page.getByRole('button', { name: /Add Theme/i }).click();
+  await page.getByRole('button', { name: /Report/ }).click();
+  await expect(page.getByRole('button', { name: /Report/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: /Connect/ })).toBeDisabled();
+  await expect(page.locator('[data-testid="report-chapter"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid="report-chapter"]').first()).toContainText('New Theme');
+});

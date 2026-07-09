@@ -4,7 +4,7 @@
  * Top toolbar with all primary actions.
  *
  * PROPS:
- *   view            {'wall'|'graph'|'sankey'}  — active view; graph-only actions disable off-view
+ *   view            {'wall'|'graph'|'sankey'|'report'}  — active view; graph-only actions disable off-view
  *   onViewChange    {fn(view)}
  *   connectMode     {boolean}
  *   physicsOpen     {boolean}
@@ -94,7 +94,7 @@ export default function Toolbar({
 
       {/* View switcher — only views that exist are rendered */}
       <div role="group" aria-label="View" className="flex mr-2 border-2 border-white">
-        {[['wall', '▦ Wall'], ['graph', '☄ Graph'], ['sankey', '⇶ Sankey']].map(([key, label]) => (
+        {[['wall', '▦ Wall'], ['graph', '☄ Graph'], ['sankey', '⇶ Sankey'], ['report', '¶ Report']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => onViewChange(key)}
