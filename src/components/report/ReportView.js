@@ -213,6 +213,7 @@ export default function ReportView() {
       >
         <button
           onClick={handleEnterPresent}
+          aria-label="Present the report full-screen"
           style={{
             padding: '8px 16px',
             backgroundColor: '#0f0d0a',
