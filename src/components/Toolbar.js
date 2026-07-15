@@ -21,6 +21,9 @@
  *   canRedo         {boolean}
  *   onUndo          {fn}
  *   onRedo          {fn}
+ *   onHelp          {fn}
+ *   helpOpen        {boolean}
+ *   showHelpHint    {boolean}
  */
 
 import React, { useRef, useEffect } from 'react';
@@ -74,6 +77,9 @@ export default function Toolbar({
   onSearchChange,
   onSearchFilterChange,
   matchCount = 0,
+  onHelp,
+  helpOpen = false,
+  showHelpHint = false,
 }) {
   const searchInputRef = useRef(null);
 
@@ -184,6 +190,7 @@ export default function Toolbar({
         )}
       </div>
 
+      <TbBtn onClick={onHelp} active={helpOpen} aria-pressed={helpOpen}>? Help</TbBtn>
       <TbBtn onClick={onTogglePhysics} active={physicsOpen} aria-pressed={physicsOpen} graphOnly view={view}>⚙ Physics</TbBtn>
       <TbBtn variant="danger" onClick={onClear}>✕ Clear</TbBtn>
     </div>

@@ -34,6 +34,7 @@ import ThemeEditModal from './components/modals/ThemeEditModal';
 import SubthemeEditModal from './components/modals/SubthemeEditModal';
 import ContextMenu  from './components/ContextMenu';
 import EdgeRelationshipPanel from './components/EdgeRelationshipPanel';
+import HelpOverlay from './components/help/HelpOverlay';
 
 // ── Inner app (needs access to GraphContext hooks) ────────────────────────────
 function AppInner() {
@@ -74,6 +75,19 @@ function AppInner() {
   const [subthemeEditId, setSubthemeEditId] = useState(null);
   const [edgeEditId,      setEdgeEditId]      = useState(null);
   const [edgePanelAnchor, setEdgePanelAnchor] = useState({ x: 0, y: 0 });
+  const [helpOpen,       setHelpOpen]       = useState(false);
+
+  // ── Help hint (one-time red dot) ────────────────────────────────────────────
+  const [showHelpHint, setShowHelpHint] = useState(() => {
+    return localStorage.getItem('thematic_analysis_help_seen_v1') === null;
+  });
+
+  useEffect(() => {
+    if (helpOpen && showHelpHint) {
+      setShowHelpHint(false);
+      localStorage.setItem('thematic_analysis_help_seen_v1', 'true');
+    }
+  }, [helpOpen, showHelpHint]);
 
   // ── Focus view ──────────────────────────────────────────────────────────────
   const [focusThemeId, setFocusThemeId] = useState(null);
@@ -438,6 +452,9 @@ function AppInner() {
         onSearchChange={setSearchQuery}
         onSearchFilterChange={(key) => setSearchFilters(f => ({ ...f, [key]: !f[key] }))}
         matchCount={matchCount}
+        onHelp={() => setHelpOpen(true)}
+        helpOpen={helpOpen}
+        showHelpHint={showHelpHint}
       />
 
       <div className="flex flex-1 overflow-hidden" ref={canvasRef}>
@@ -497,6 +514,7 @@ function AppInner() {
       <CodeEditModal  nodeId={codeEditId}  onClose={() => setCodeEditId(null)} />
       <ThemeEditModal nodeId={themeEditId} onClose={() => setThemeEditId(null)} />
       <SubthemeEditModal nodeId={subthemeEditId} onClose={() => setSubthemeEditId(null)} />
+      <HelpOverlay    open={helpOpen}      onClose={() => setHelpOpen(false)}      view={view} />
 
       {/* Edge relationship panel */}
       <EdgeRelationshipPanel
