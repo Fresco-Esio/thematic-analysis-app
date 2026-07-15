@@ -190,7 +190,13 @@ export default function Toolbar({
         )}
       </div>
 
-      <TbBtn onClick={onHelp} active={helpOpen} aria-pressed={helpOpen}>? Help</TbBtn>
+      <span className="relative inline-flex">
+        <TbBtn onClick={onHelp} active={helpOpen} aria-pressed={helpOpen}>? Help</TbBtn>
+        {showHelpHint && !helpOpen && (
+          // one-time "you haven't seen the help yet" nudge — cleared on first open
+          <span aria-hidden="true" className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#dc2626] border-2 border-white" />
+        )}
+      </span>
       <TbBtn onClick={onTogglePhysics} active={physicsOpen} aria-pressed={physicsOpen} graphOnly view={view}>⚙ Physics</TbBtn>
       <TbBtn variant="danger" onClick={onClear}>✕ Clear</TbBtn>
     </div>

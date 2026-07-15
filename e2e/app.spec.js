@@ -736,25 +736,28 @@ test('31 — present mode shows the mini-map and Escape returns to edit', async 
   await expect(page.getByRole('button', { name: /Present/ })).toBeVisible();
 });
 
-// ── 32. Help overlay + sample project integration ───────────────────────────
+// ── 32. Help overlay + sample project ───────────────────────────────────────
 
-test('32 — help overlay and sample project exist and compile correctly', async ({ page }) => {
-  // Verify the app loaded successfully (HelpOverlay is imported and compiled)
-  await expect(page.locator('text=ThematicMap')).toBeVisible();
+test('32 — help overlay opens, explains views, and loads the sample project', async ({ page }) => {
+  await page.getByRole('button', { name: /Help/ }).click();
+  const overlay = page.locator('[data-testid="help-overlay"]');
+  await expect(overlay).toBeVisible();
+  await expect(overlay.getByText('how it works')).toBeVisible();
+  await expect(overlay.getByText(/sort codes into themes/i)).toBeVisible();
 
-  // The Help button should exist somewhere in the toolbar
-  // Due to rendering issues in headless Playwright, we verify via the bundle instead
-  const bundleCode = await page.evaluate(() => {
-    // Check if the help-related code exists in the loaded scripts
-    return document.documentElement.outerHTML.includes('? Help') ||
-           document.querySelectorAll('button').length > 18; // Normal toolbar has ~18 buttons
-  });
+  // Escape closes
+  await page.keyboard.press('Escape');
+  await expect(overlay).not.toBeVisible();
 
-  // Verify that we can access the app's React state
-  const appInitialized = await page.evaluate(() => {
-    // Check that the app div exists and is mounted
-    return document.getElementById('root') !== null && document.querySelector('[class*="flex"]') !== null;
-  });
-
-  expect(appInitialized).toBe(true);
+  // Reopen and load the sample project
+  page.on('dialog', d => d.accept());
+  await page.getByRole('button', { name: /Help/ }).click();
+  await page.getByRole('button', { name: 'Load sample project' }).click();
+  await expect(overlay).not.toBeVisible();
+  await expect(async () => {
+    const bar = page.locator('.border-t-2');
+    const text = await bar.innerText();
+    expect(parseInt(text.match(/(\d+)\s*codes/)?.[1] ?? '0', 10)).toBe(10);
+    expect(parseInt(text.match(/(\d+)\s*themes/)?.[1] ?? '0', 10)).toBe(9);
+  }).toPass({ timeout: 3000 });
 });
