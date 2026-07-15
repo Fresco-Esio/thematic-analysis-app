@@ -9,12 +9,13 @@
  *   onClose   {fn}       — close handler
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useGraphDispatch } from '../../context/GraphContext';
 import { buildSampleProject } from '../../utils/sampleProject';
 
 export default function HelpOverlay({ open, view, onClose }) {
   const dispatch = useGraphDispatch();
+  const dialogRef = useRef(null);
 
   // Escape key closes modal
   useEffect(() => {
@@ -23,6 +24,11 @@ export default function HelpOverlay({ open, view, onClose }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // Move keyboard focus into the dialog when it opens
+  useEffect(() => {
+    if (open) dialogRef.current?.focus();
+  }, [open]);
 
   function handleLoadSample() {
     if (window.confirm('Load the sample project? This replaces the current workspace and cannot be undone.')) {
@@ -39,7 +45,7 @@ export default function HelpOverlay({ open, view, onClose }) {
       icon: '▦',
       name: 'Wall',
       bullets: [
-        'Drag cards onto the wall — dropping a card inside a theme\'s region assigns it',
+        'Drag cards onto the wall: dropping a card inside a theme\'s region assigns it',
         'Dropping on empty wall unassigns; overlapping two regions shows a contested "?" badge',
         'Unsorted codes wait in the left tray; arrow keys move a focused card (Shift = fine)',
       ],
@@ -57,7 +63,7 @@ export default function HelpOverlay({ open, view, onClose }) {
       icon: '⇶',
       name: 'Sankey',
       bullets: [
-        'Reads left to right — sources → codes → themes; ribbon thickness = number of codes',
+        'Reads left to right, sources → codes → themes; ribbon thickness = number of codes',
         'Hover highlights a full thread; click a theme to isolate it',
         '⚠ marks themes grounded in a single source; click a code to edit it',
       ],
@@ -76,6 +82,8 @@ export default function HelpOverlay({ open, view, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-title"
@@ -85,7 +93,7 @@ export default function HelpOverlay({ open, view, onClose }) {
       >
         {/* Title */}
         <h2 id="help-title" className="text-2xl font-bold text-[#0f0d0a] mb-1">
-          ThematicMap — how it works
+          ThematicMap: how it works
         </h2>
         <p className="text-base text-[#6b6560] mb-6">
           A visual workspace for Braun & Clarke reflexive thematic analysis; for academic/research use.
@@ -103,7 +111,7 @@ export default function HelpOverlay({ open, view, onClose }) {
             return (
               <div
                 key={key}
-                className={`border-l-4 pl-4 ${isActive ? 'border-l-[#dc2626]' : 'border-l-[#e5e7eb]'}`}
+                className={isActive ? 'border-2 border-[#dc2626] p-3' : 'p-3 border-2 border-transparent'}
                 style={isActive ? { backgroundColor: 'rgba(220, 38, 38, 0.05)' } : {}}
               >
                 <h3 className="text-base font-bold text-[#0f0d0a] mb-2">
@@ -126,8 +134,8 @@ export default function HelpOverlay({ open, view, onClose }) {
         </div>
 
         {/* Data note */}
-        <div className="text-xs text-[#9ca3af] mb-6">
-          Work is saved automatically in this browser only — export PNG/PDF to share results.
+        <div className="text-xs text-[#6b6560] mb-6">
+          Work is saved automatically in this browser only. Export PNG/PDF to share results.
         </div>
 
         {/* Footer buttons */}

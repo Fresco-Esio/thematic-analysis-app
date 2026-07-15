@@ -263,7 +263,7 @@ export default function ImportModal({ open, onClose }) {
             </p>
             <p className="text-base text-[#6b6560] mb-5">
               <span className="text-[#0f0d0a] font-bold">{result.summary.codeCount}</span> code nodes,{' '}
-              <span className="text-[#0f0d0a] font-bold">{result.summary.themeCount}</span> new theme nodes —{' '}
+              <span className="text-[#0f0d0a] font-bold">{result.summary.themeCount}</span> new theme nodes:{' '}
               <span className="text-[#dc2626] font-bold">{result.summary.assigned} assigned</span>,{' '}
               <span className="text-[#6b6560] font-bold">{result.summary.unassigned} unassigned</span>
             </p>

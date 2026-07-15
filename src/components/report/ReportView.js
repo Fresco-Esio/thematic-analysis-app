@@ -149,7 +149,7 @@ export default function ReportView() {
               backgroundColor: '#0f0d0a',
               color: '#f0ebe3',
               border: '2px solid #0f0d0a',
-              borderRadius: '9999px',
+              boxShadow: '3px 3px 0 rgba(15, 13, 10, 0.35)',
               cursor: 'pointer',
               fontSize: '14px',
               fontWeight: 'bold',
@@ -208,7 +208,7 @@ export default function ReportView() {
           justifyContent: 'flex-end',
           padding: '16px 24px',
           backgroundColor: 'var(--bg-canvas)',
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: '1px solid rgba(15, 13, 10, 0.15)',
         }}
       >
         <button
@@ -218,8 +218,8 @@ export default function ReportView() {
             padding: '8px 16px',
             backgroundColor: '#0f0d0a',
             color: '#f0ebe3',
-            border: 'none',
-            borderRadius: '4px',
+            border: '2px solid #0f0d0a',
+            boxShadow: '3px 3px 0 rgba(15, 13, 10, 0.35)',
             cursor: 'pointer',
             fontSize: '14px',
             fontWeight: 'bold',

@@ -894,7 +894,7 @@ export default function Canvas({
           }}
         >
           {connectingFrom
-            ? 'Now click a theme or subtheme to link — Esc cancels'
+            ? 'Now click a theme or subtheme to link (Esc cancels)'
             : 'Click a code node to start a connection'}
         </div>
       )}

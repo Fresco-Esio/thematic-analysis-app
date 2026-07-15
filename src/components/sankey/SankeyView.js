@@ -245,7 +245,7 @@ export default function SankeyView({ onEditCode, onImport }) {
                     fill="#0f0d0a"
                   >
                     {warn ? `⚠ ${n.label}` : n.label}
-                    {warn && <title>Grounded in a single source — consider whether this theme rests on one voice</title>}
+                    {warn && <title>Grounded in a single source: consider whether this theme rests on one voice</title>}
                   </text>
                 </g>
               );

@@ -18,6 +18,7 @@
  */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { GraphProvider, useGraphDispatch, useGraph, useGraphHistory, makeId, UNASSIGNED_COLOR } from './context/GraphContext';
 import { loadPhysicsParams } from './utils/forceSimulation';
 import { getMatchedNodeIds } from './utils/nodeUtils';
@@ -538,10 +539,14 @@ function AppInner() {
 }
 
 // ── Root export wraps AppInner in the GraphProvider ───────────────────────────
+// MotionConfig honors the OS "reduce motion" preference for all Framer Motion
+// animations (node entrances, tooltips, report pull quotes).
 export default function App() {
   return (
-    <GraphProvider>
-      <AppInner />
-    </GraphProvider>
+    <MotionConfig reducedMotion="user">
+      <GraphProvider>
+        <AppInner />
+      </GraphProvider>
+    </MotionConfig>
   );
 }

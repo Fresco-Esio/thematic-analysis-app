@@ -251,27 +251,29 @@ export default function ReportChapter({
               return (
                 <div
                   key={code.id}
+                  draggable={!isAdded}
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData('text/ta-code-id', code.id);
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    padding: '8px 12px',
+                    padding: '6px 12px 8px',
                     backgroundColor: 'white',
-                    borderLeft: `3px solid ${code.color}`,
-                    boxShadow: '2px 2px 0 rgba(0, 0, 0, 0.05)',
+                    border: '2px solid #0f0d0a',
+                    borderTop: `5px solid ${code.color}`,
+                    boxShadow: '2px 2px 0 rgba(15, 13, 10, 0.2)',
                     opacity: isAdded ? 0.4 : 1,
                     transition: 'opacity 0.2s',
+                    cursor: isAdded ? 'default' : 'grab',
                   }}
                 >
                   <span style={{ fontSize: '13px', fontWeight: 500, flex: 1 }}>
                     {code.label}
                   </span>
                   <button
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.effectAllowed = 'copy';
-                      e.dataTransfer.setData('text/ta-code-id', code.id);
-                    }}
                     onClick={() => handleAddPullQuote(code.id)}
                     aria-label={`Add as pull quote: ${code.label}`}
                     disabled={isAdded}
@@ -436,8 +438,7 @@ export default function ReportChapter({
             minHeight: '200px',
             ...(mode === 'edit'
               ? {
-                  borderRadius: '4px',
-                  transition: dragOverMargin ? 'outline 0.2s' : 'outline 0.2s',
+                  transition: 'outline 0.2s',
                   outline: dragOverMargin ? '2px dashed #dc2626' : '2px dashed transparent',
                   padding: '12px',
                   marginLeft: '-12px',
@@ -459,22 +460,22 @@ export default function ReportChapter({
                   margin: 0,
                   padding: '12px',
                   paddingLeft: '12px',
-                  borderLeft: q.tombstone ? '3px dashed #9ca3af' : `3px solid ${q.color}`,
+                  borderLeft: q.tombstone ? '3px dashed #a39b92' : `3px solid ${q.color}`,
                   fontSize: '13px',
                   lineHeight: 1.5,
                 }}
               >
                 {q.tombstone ? (
-                  <div style={{ fontStyle: 'italic', color: '#9ca3af' }}>
-                    Removed code — this quote's source was deleted.
+                  <div style={{ fontStyle: 'italic', color: '#a39b92' }}>
+                    Removed code: this quote's source was deleted.
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontSize: '15px', fontStyle: 'italic', marginBottom: '8px', color: '#374151' }}>
-                      {q.quote || <span style={{ color: '#9ca3af' }}>No quote recorded</span>}
+                    <div style={{ fontSize: '15px', fontStyle: 'italic', marginBottom: '8px', color: '#3d3833' }}>
+                      {q.quote || <span style={{ color: '#a39b92' }}>No quote recorded</span>}
                     </div>
                     <div style={{ fontWeight: 600, marginBottom: '4px' }}>{q.label}</div>
-                    <div style={{ fontSize: '12px', letterSpacing: '0.05em', color: '#6b7280', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '12px', letterSpacing: '0.05em', color: '#6b6560', textTransform: 'uppercase' }}>
                       {q.source}
                     </div>
                   </>
