@@ -26,12 +26,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm install (not ci): the lockfile is maintained on Windows, and
+      # npm ci on Linux trips over optional platform-package entries
+      # (npm/cli#4828). install stays lock-guided but tolerant.
+      - run: npm install --no-audit --no-fund
       - run: npm run build
         env:
           # CRA promotes lint warnings to errors when CI=true; a tracked
           # pre-existing warning in Canvas.js would fail the deploy.
           CI: "false"
+      - name: Dump npm debug logs
+        if: failure()
+        run: cat /home/runner/.npm/_logs/*.log || true
       - uses: actions/configure-pages@v5
         with:
           enablement: true
