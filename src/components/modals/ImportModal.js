@@ -113,14 +113,20 @@ export default function ImportModal({ open, onClose }) {
 
   // ── Template download ──────────────────────────────────────────────────────
   function handleTemplateDownload() {
-    const data = generateTemplate();
-    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    // generateTemplate() already returns a typed Blob — do not re-wrap it.
+    const blob = generateTemplate();
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
     a.download = 'thematic-analysis-template.xlsx';
+    // Anchor must be in the document for the click to register in Firefox,
+    // matching the PNG export pattern in exportUtils.js.
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    // Revoking synchronously races the browser still reading the blob and can
+    // write a truncated .xlsx, which Excel then refuses in Protected View.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   async function handleSheetConfirm() {
