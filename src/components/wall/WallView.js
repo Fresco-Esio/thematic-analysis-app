@@ -104,6 +104,27 @@ export default function WallView({ onContextMenu, onCropRectReady }) {
     return () => onCropRectReady?.(null);
   }, [onCropRectReady]);
 
+  // ── Self-heal: pre-fix saved states have assigned codes but no regions
+  // (import never seeded them). Give each such theme a default territory,
+  // centered on the theme's position. Mount-only: re-running after an Undo
+  // would fight the user's undo of these very ADD_REGIONs.
+  useEffect(() => {
+    const assignedThemeIds = new Set(
+      nodes.filter(n => n.type === 'code' && n.primaryThemeId).map(n => n.primaryThemeId)
+    );
+    const regionThemeIds = new Set((regions || []).map(r => r.themeId));
+    nodes
+      .filter(n => n.type === 'theme' && assignedThemeIds.has(n.id) && !regionThemeIds.has(n.id))
+      .forEach(t => {
+        const c = t.wallPosition ?? { x: t.x ?? 400, y: t.y ?? 300 };
+        dispatch({ type: 'ADD_REGION', region: {
+          id: `region-${t.id}`, themeId: t.id,
+          rect: { x: c.x - 220, y: c.y - 160, w: 440, h: 320 },
+        }});
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Card drag handlers ────────────────────────────────────────────────────
   function clientToWorld(clientX, clientY) {
     const rect = surfaceRef.current.getBoundingClientRect();

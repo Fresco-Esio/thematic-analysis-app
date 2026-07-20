@@ -20,9 +20,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGraph, useGraphDispatch } from '../../context/GraphContext';
 import { parseFile, buildGraphFromRows, generateTemplate, getSheetNames } from '../../utils/importUtils';
+import { seedWallLayout } from '../../utils/wallGeometry';
 
 export default function ImportModal({ open, onClose }) {
-  const { nodes }  = useGraph();
+  const { nodes, regions } = useGraph();
   const dispatch   = useGraphDispatch();
 
   const [step,     setStep]     = useState(1);
@@ -97,15 +98,46 @@ export default function ImportModal({ open, onClose }) {
 
     if (clearFirst) dispatch({ type: 'CLEAR' });
 
+    // Seed Wall territories: one region per new theme, cards gridded inside
+    // (spec: docs/superpowers/specs/2026-07-17-wall-import-seeding-and-outline-view-design.md Part 1).
+    const codesByThemeId = new Map();
+    result.codeNodes.forEach(c => {
+      if (!c.primaryThemeId) return;
+      if (!codesByThemeId.has(c.primaryThemeId)) codesByThemeId.set(c.primaryThemeId, []);
+      codesByThemeId.get(c.primaryThemeId).push(c);
+    });
+    const priorRegions = clearFirst ? [] : (regions || []);
+    // Existing themes reused by this import also collect their new codes —
+    // the seeder grids those into the theme's existing rect.
+    const themesForSeed = [
+      ...result.themeNodes,
+      ...(clearFirst ? [] : nodes.filter(n => n.type === 'theme' && codesByThemeId.has(n.id))),
+    ];
+    const seeded = seedWallLayout(themesForSeed, codesByThemeId, priorRegions);
+
+    const regionCenter = new Map(seeded.regions.map(r => [
+      r.themeId,
+      { x: r.rect.x + r.rect.w / 2, y: r.rect.y + r.rect.h / 2 },
+    ]));
+    const themeNodes = result.themeNodes.map(t =>
+      regionCenter.has(t.id) ? { ...t, wallPosition: regionCenter.get(t.id) } : t
+    );
+    const codeNodes = result.codeNodes.map(c =>
+      seeded.wallPositions.has(c.id) ? { ...c, wallPosition: seeded.wallPositions.get(c.id) } : c
+    );
+
     // Add theme nodes first (so code nodes can reference them)
-    if (result.themeNodes.length > 0) {
-      dispatch({ type: 'ADD_NODES', nodes: result.themeNodes });
+    if (themeNodes.length > 0) {
+      dispatch({ type: 'ADD_NODES', nodes: themeNodes });
     }
-    if (result.codeNodes.length > 0) {
-      dispatch({ type: 'ADD_NODES', nodes: result.codeNodes });
+    if (codeNodes.length > 0) {
+      dispatch({ type: 'ADD_NODES', nodes: codeNodes });
     }
     result.edges.forEach(edge => {
       dispatch({ type: 'ADD_EDGE', edge });
+    });
+    seeded.regions.forEach(region => {
+      dispatch({ type: 'ADD_REGION', region });
     });
 
     handleClose();

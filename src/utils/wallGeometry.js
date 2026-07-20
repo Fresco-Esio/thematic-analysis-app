@@ -95,3 +95,82 @@ export function clusterPiles(cards, threshold = 28) {
   });
   return [...groups.values()];
 }
+
+// ── Import seeding ───────────────────────────────────────────────────────────
+
+const CARD_W = 176, CARD_H = 96;          // must match cardRect() defaults
+const CELL_W = 192, CELL_H = 112;         // card + gutter
+const REGION_PAD = 24;                    // inner padding on all sides
+const LABEL_HEADROOM = 48;                // clearance under the region label plate
+const REGION_GUTTER = 80;                 // spacing between packed regions
+const ROW_WRAP_W = 2400;                  // wrap region-packing rows at this width
+const MIN_REGION_W = 440, MIN_REGION_H = 320; // matches Add Theme / v1 migration
+
+/**
+ * Seed Wall territories for imported themes: one non-overlapping region per
+ * theme that lacks one (sized to its card count, packed into rows below any
+ * existing regions), plus grid wallPositions for every themed code — always
+ * FULLY inside its region so assignmentAfterDrop keeps the assignment.
+ * Themes that already have a region keep it; their new codes grid into the
+ * existing rect, clamped inside (overflow stacks — clusterPiles handles it).
+ *
+ * @param {Array}  themes          theme nodes to place codes for
+ * @param {Map}    codesByThemeId  themeId → code nodes (import order)
+ * @param {Array}  existingRegions current state.regions
+ * @returns {{ regions: Array, wallPositions: Map<codeId, {x,y}> }}
+ */
+export function seedWallLayout(themes, codesByThemeId, existingRegions = []) {
+  const regionByTheme = new Map(existingRegions.map(r => [r.themeId, r]));
+  const newRegions = [];
+  const wallPositions = new Map();
+
+  // New regions pack below whatever is already on the wall
+  const originX = 80;
+  const originY = existingRegions.length
+    ? Math.max(...existingRegions.map(r => r.rect.y + r.rect.h)) + REGION_GUTTER
+    : 80;
+
+  // 1. Size + row-pack a region per theme lacking one
+  let cx = originX, cy = originY, rowH = 0;
+  for (const t of themes) {
+    if (regionByTheme.has(t.id)) continue;
+    const n = (codesByThemeId.get(t.id) || []).length;
+    const cols = Math.max(2, Math.ceil(Math.sqrt(n * 1.5)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const w = Math.max(MIN_REGION_W, cols * CELL_W + REGION_PAD * 2);
+    const h = Math.max(MIN_REGION_H, rows * CELL_H + REGION_PAD * 2 + LABEL_HEADROOM);
+    if (cx > originX && cx + w > ROW_WRAP_W) {
+      cx = originX;
+      cy += rowH + REGION_GUTTER;
+      rowH = 0;
+    }
+    const region = { id: `region-${t.id}`, themeId: t.id, rect: { x: cx, y: cy, w, h } };
+    newRegions.push(region);
+    regionByTheme.set(t.id, region);
+    cx += w + REGION_GUTTER;
+    rowH = Math.max(rowH, h);
+  }
+
+  // 2. Grid card centers inside each theme's region (new or existing)
+  for (const t of themes) {
+    const codes = codesByThemeId.get(t.id) || [];
+    const region = regionByTheme.get(t.id);
+    if (!codes.length || !region) continue;
+    const { rect } = region;
+    const firstX = rect.x + REGION_PAD + CARD_W / 2;
+    const firstY = rect.y + LABEL_HEADROOM + REGION_PAD + CARD_H / 2;
+    const maxX = rect.x + rect.w - REGION_PAD - CARD_W / 2;
+    const maxY = rect.y + rect.h - REGION_PAD - CARD_H / 2;
+    const fitCols = Math.max(1, Math.floor((rect.w - REGION_PAD * 2) / CELL_W));
+    codes.forEach((c, i) => {
+      const col = i % fitCols;
+      const row = Math.floor(i / fitCols);
+      wallPositions.set(c.id, {
+        x: Math.min(firstX + col * CELL_W, maxX),
+        y: Math.min(firstY + row * CELL_H, maxY),
+      });
+    });
+  }
+
+  return { regions: newRegions, wallPositions };
+}

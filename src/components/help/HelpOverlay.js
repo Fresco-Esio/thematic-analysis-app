@@ -5,7 +5,7 @@
  *
  * PROPS:
  *   open      {boolean}  — overlay visibility
- *   view      {string}   — current view ('wall', 'graph', 'sankey', 'report')
+ *   view      {string}   — current view ('wall', 'graph', 'outline', 'report')
  *   onClose   {fn}       — close handler
  */
 
@@ -59,13 +59,13 @@ export default function HelpOverlay({ open, view, onClose }) {
         '⊹ Align lays out themes radially; ⚙ Physics tunes the forces',
       ],
     },
-    sankey: {
-      icon: '⇶',
-      name: 'Sankey',
+    outline: {
+      icon: '≣',
+      name: 'Outline',
       bullets: [
-        'Reads left to right, sources → codes → themes; ribbon thickness = number of codes',
-        'Hover highlights a full thread; click a theme to isolate it',
-        '⚠ marks themes grounded in a single source; click a code to edit it',
+        'Themes as color bands (biggest first) with subthemes and code chips inside',
+        'Click a theme band to isolate it; click a code chip to edit it; hover for its quote',
+        '⚠ marks themes grounded in a single source; the matrix below shows codes per theme × source',
       ],
     },
     report: {
@@ -101,7 +101,7 @@ export default function HelpOverlay({ open, view, onClose }) {
 
         {/* Workflow strip */}
         <div className="border-2 border-[#0f0d0a] px-4 py-3 mb-6 font-bold text-sm">
-          <span className="text-[#0f0d0a]">⬆ Import → ▦ Wall (sort codes into themes) → ⇶ Sankey (check your evidence) → ¶ Report (write it up) → ↓ Export</span>
+          <span className="text-[#0f0d0a]">⬆ Import → ▦ Wall (sort codes into themes) → ≣ Outline (check your evidence) → ¶ Report (write it up) → ↓ Export</span>
         </div>
 
         {/* View guides */}
