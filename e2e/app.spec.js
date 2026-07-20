@@ -761,3 +761,37 @@ test('32 — help overlay opens, explains views, and loads the sample project', 
     expect(parseInt(text.match(/(\d+)\s*themes/)?.[1] ?? '0', 10)).toBe(9);
   }).toPass({ timeout: 3000 });
 });
+
+// ── 33. Wall import seeding — regions exist and drags keep assignment ────────
+
+test('33 — Wall shows a region per imported theme; in-region drag keeps assignment', async ({ page }) => {
+  // Import the sample CSV (same flow as test 9)
+  await page.getByRole('button', { name: /Import/i }).click();
+  const csvPath = path.resolve(__dirname, '..', 'docs', 'samples', 'thematic-import-sample.csv');
+  await page.locator('input[type="file"]').setInputFiles(csvPath);
+  await expect(page.getByText('Preview Import')).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: /Confirm Import/i }).click();
+  await expect(page.getByText('Preview Import')).not.toBeVisible({ timeout: 3000 });
+
+  await page.getByRole('button', { name: /Wall/ }).click();
+
+  // Sample CSV has 9 themes → 9 seeded regions
+  await expect(page.locator('[aria-label*="theme region"]')).toHaveCount(9);
+
+  // Only the 1 unthemed code waits in the tray — the 9 assigned cards are placed
+  const tray = page.locator('[data-testid="wall-tray"]');
+  await expect(tray.locator('[aria-label*="code card"]')).toHaveCount(1);
+
+  // Nudge an assigned card a few px (well inside its region) and drop it
+  const card = page.locator('[data-testid="wall-surface"] [aria-label*="Compulsive checking"]').first();
+  const box = await card.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 10, box.y + box.height / 2 + 10, { steps: 4 });
+  await page.mouse.up();
+
+  // Regression guard: pre-fix, ANY drop unassigned the card (regions were []).
+  // Card must not land in the tray and the unassigned count must not grow.
+  await expect(tray.locator('[aria-label*="Compulsive checking"]')).toHaveCount(0);
+  await expect(page.getByText('1 unassigned')).toBeVisible();
+});

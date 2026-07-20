@@ -4,20 +4,20 @@
     {
       "id": 1,
       "subject": "Task 1: seedWallLayout() in wallGeometry.js",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Pure helper producing non-overlapping regions sized to code count + grid wallPositions fully inside each region.\n\n**Files:** src/utils/wallGeometry.js, src/utils/wallGeometry.test.js\n\n```json:metadata\n{\"files\": [\"src/utils/wallGeometry.js\", \"src/utils/wallGeometry.test.js\"], \"verifyCommand\": \"npm test -- --watchAll=false --testMatch \\\"**/.claude/**/src/**/*.{spec,test}.{js,jsx,ts,tsx}\\\"\", \"acceptanceCriteria\": [\"cards fully inside regions\", \"no region overlap\", \"min size 440x320\", \"existing regions reused\", \"unthemed codes skipped\"]}\n```"
     },
     {
       "id": 2,
       "subject": "Task 2: Wire seeding into ImportModal",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [1],
       "description": "**Goal:** Import dispatches ADD_REGION per new theme and patches wallPosition onto assigned codes + new themes.\n\n**Files:** src/components/modals/ImportModal.js\n\n```json:metadata\n{\"files\": [\"src/components/modals/ImportModal.js\"], \"verifyCommand\": \"npm test -- --watchAll=false --testMatch \\\"**/.claude/**/src/**/*.{spec,test}.{js,jsx,ts,tsx}\\\" && npm run build\", \"acceptanceCriteria\": [\"regions dispatched\", \"codes patched with wallPosition\", \"themes get region-center wallPosition\", \"clearFirst handled\"]}\n```"
     },
     {
       "id": 3,
       "subject": "Task 3: WallView self-heal + E2E for import seeding",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [2],
       "description": "**Goal:** Mount-time self-heal seeds default regions for pre-fix saved states; E2E proves import→Wall→drag keeps assignment.\n\n**Files:** src/components/wall/WallView.js, e2e/app.spec.js\n\n```json:metadata\n{\"files\": [\"src/components/wall/WallView.js\", \"e2e/app.spec.js\"], \"verifyCommand\": \"npx playwright test --reporter=list\", \"acceptanceCriteria\": [\"self-heal mount-only idempotent\", \"e2e regions count 9\", \"drag keeps assignment\"]}\n```"
     },
