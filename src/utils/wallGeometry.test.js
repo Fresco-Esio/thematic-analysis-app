@@ -1,4 +1,4 @@
-import { cardRect, containment, assignmentAfterDrop, isContested, clusterPiles, stringAnchorOnRegion } from './wallGeometry';
+import { cardRect, containment, assignmentAfterDrop, isContested, clusterPiles, stringAnchorOnRegion, seedWallLayout } from './wallGeometry';
 
 describe('cardRect', () => {
   test('centers the rect on the position with default card size', () => {
@@ -159,5 +159,84 @@ describe('stringAnchorOnRegion (ray from region center — continuous, no edge s
   test('degenerate card-at-center still returns a border point', () => {
     const a = stringAnchorOnRegion(rect, { x: 320, y: 260 });
     expect(a.y === 100 || a.y === 420 || a.x === 100 || a.x === 540).toBe(true);
+  });
+});
+
+describe('seedWallLayout', () => {
+  const theme = (id) => ({ id, type: 'theme', label: id });
+  const code = (id) => ({ id, type: 'code', label: id });
+  const codesFor = (themeId, n) =>
+    Array.from({ length: n }, (_, i) => code(`${themeId}-c${i}`));
+
+  function overlaps(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  test('one region per theme, min size respected, id convention', () => {
+    const t = theme('t1');
+    const byTheme = new Map([['t1', codesFor('t1', 1)]]);
+    const { regions } = seedWallLayout([t], byTheme);
+    expect(regions).toHaveLength(1);
+    expect(regions[0].id).toBe('region-t1');
+    expect(regions[0].themeId).toBe('t1');
+    expect(regions[0].rect.w).toBeGreaterThanOrEqual(440);
+    expect(regions[0].rect.h).toBeGreaterThanOrEqual(320);
+  });
+
+  test('every card lands fully inside its theme region', () => {
+    const themes = [theme('t1'), theme('t2')];
+    const byTheme = new Map([['t1', codesFor('t1', 7)], ['t2', codesFor('t2', 23)]]);
+    const { regions, wallPositions } = seedWallLayout(themes, byTheme);
+    for (const t of themes) {
+      const region = regions.find(r => r.themeId === t.id);
+      for (const c of byTheme.get(t.id)) {
+        const pos = wallPositions.get(c.id);
+        expect(pos).toBeDefined();
+        expect(containment(cardRect(pos), region.rect).fully).toBe(true);
+      }
+    }
+  });
+
+  test('regions never overlap each other, even with many large themes', () => {
+    const themes = Array.from({ length: 9 }, (_, i) => theme(`t${i}`));
+    const byTheme = new Map(themes.map((t, i) => [t.id, codesFor(t.id, 3 + i * 4)]));
+    const { regions } = seedWallLayout(themes, byTheme);
+    expect(regions).toHaveLength(9);
+    for (let i = 0; i < regions.length; i++) {
+      for (let j = i + 1; j < regions.length; j++) {
+        expect(overlaps(regions[i].rect, regions[j].rect)).toBe(false);
+      }
+    }
+  });
+
+  test('theme with an existing region gets no new region; codes grid into the existing rect', () => {
+    const existing = { id: 'region-t1', themeId: 't1', rect: { x: 500, y: 500, w: 440, h: 320 } };
+    const byTheme = new Map([['t1', codesFor('t1', 4)]]);
+    const { regions, wallPositions } = seedWallLayout([theme('t1')], byTheme, [existing]);
+    expect(regions).toHaveLength(0);
+    for (const c of byTheme.get('t1')) {
+      expect(containment(cardRect(wallPositions.get(c.id)), existing.rect).fully).toBe(true);
+    }
+  });
+
+  test('overflowing an existing small region clamps cards inside (piles handle stacking)', () => {
+    const existing = { id: 'region-t1', themeId: 't1', rect: { x: 0, y: 0, w: 440, h: 320 } };
+    const byTheme = new Map([['t1', codesFor('t1', 30)]]);
+    const { wallPositions } = seedWallLayout([theme('t1')], byTheme, [existing]);
+    for (const c of byTheme.get('t1')) {
+      expect(containment(cardRect(wallPositions.get(c.id)), existing.rect).fully).toBe(true);
+    }
+  });
+
+  test('new regions start below existing regions', () => {
+    const existing = { id: 'region-old', themeId: 'old', rect: { x: 80, y: 80, w: 600, h: 400 } };
+    const { regions } = seedWallLayout([theme('t1')], new Map([['t1', codesFor('t1', 2)]]), [existing]);
+    expect(regions[0].rect.y).toBeGreaterThanOrEqual(480); // below 80 + 400
+  });
+
+  test('themes with zero codes still get a (minimum-size) region; no positions emitted', () => {
+    const { regions, wallPositions } = seedWallLayout([theme('t1')], new Map());
+    expect(regions).toHaveLength(1);
+    expect(wallPositions.size).toBe(0);
   });
 });
