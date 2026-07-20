@@ -2,24 +2,39 @@
  * E2E tests — Thematic Analysis App
  *
  * Covers:
- *   1. Initial load & empty state
- *   2. Add theme node
- *   3. Add code node
- *   4. Connect mode (code → theme)
- *   5. Context menu: edit code node
- *   6. Context menu: edit theme node
- *   7. Delete a code node via context menu
- *   8. Delete a theme node (unassigns codes)
- *   9. CSV import flow
- *  10. Physics panel open/close
- *  11. Fit View
- *  12. Clear canvas
- *  13. LocalStorage persistence
- *  14. Edge relationship panel
- *  15. Subtheme creation from toolbar
- *  16. Subtheme rename via context menu
- *  17. Add subtheme from theme context menu
- *  18. Collapse/expand codes via subtheme context menu
+ *   1. app loads with empty canvas
+ *   2. add a theme node
+ *   3. add a code node
+ *   4. connect code to theme assigns primary theme
+ *   5. right-click code opens context menu and edit modal
+ *   6. right-click theme opens edit modal with color picker
+ *   7. delete code node from context menu
+ *   8. deleting a theme unassigns connected codes
+ *   9. import CSV creates code and theme nodes
+ *  10. physics panel opens and closes
+ *  11. fit view does not crash on empty canvas
+ *  12. clear canvas resets all nodes
+ *  13. graph state persists across page reload
+ *  14. edge relationship panel opens via context menu and closes on Escape
+ *  15. creates a subtheme node from toolbar
+ *  16. renames a subtheme via context menu
+ *  17. adds a subtheme from a theme context menu
+ *  18. collapses and expands codes from subtheme context menu
+ *  19. undo/redo buttons exist and are initially disabled
+ *  20. undo restores deleted theme node
+ *  21. shift+click multi-select and bulk delete
+ *  22. view switcher toggles between Graph and Wall
+ *  23. wall card drag persists position
+ *  24. placing a card in a region assigns its theme; empty wall unassigns
+ *  25. keyboard moves a wall card and opens its menu
+ *  26. Outline view shows empty-state guidance when no codes exist
+ *  27. Outline renders theme bands, chips, and grounding matrix after CSV import
+ *  28. Outline code chip opens edit modal; theme band isolates
+ *  29. Report view seeds a chapter per theme and saves prose on blur
+ *  30. pull quotes render and tombstone when their code is deleted
+ *  31. present mode shows the mini-map and Escape returns to edit
+ *  32. help overlay opens, explains views, and loads the sample project
+ *  33. Wall shows a region per imported theme; in-region drag keeps assignment
  */
 
 const { test, expect } = require('@playwright/test');
